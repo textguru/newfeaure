@@ -8,3 +8,9 @@ __history
 *.exe
 *.dll
 bin/*
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+issues.db
