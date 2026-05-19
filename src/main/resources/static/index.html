@@ -9,7 +9,6 @@
         body { background-color: #f5f7fa; padding: 20px; }
         .page-title { font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #3498db; }
         .section-box { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border-left: 4px solid #3498db; }
-        .section-box.settings { border-left-color: #2ecc71; }
         .section-box.results { border-left-color: #e67e22; }
         .section-title { font-size: 1.1rem; font-weight: 600; color: #34495e; margin-bottom: 15px; display: flex; align-items: center; }
         .section-title .badge { font-size: 0.75rem; margin-right: 10px; }
@@ -23,10 +22,10 @@
         .btn-action { padding: 8px 20px; font-size: 0.9rem; font-weight: 500; }
         .btn-search { background-color: #3498db; border-color: #3498db; color: #fff; }
         .btn-search:hover { background-color: #2980b9; border-color: #2980b9; color: #fff; }
+        .btn-search:disabled { background-color: #aab7c4; border-color: #aab7c4; color: #fff; cursor: not-allowed; }
         .btn-download { background-color: #2ecc71; border-color: #2ecc71; color: #fff; }
         .btn-download:hover { background-color: #27ae60; border-color: #27ae60; color: #fff; }
         .btn-download:disabled { background-color: #95a5a6; border-color: #95a5a6; cursor: not-allowed; }
-        .action-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
         .pagination-container { display: flex; justify-content: center; margin-top: 15px; }
         .record-count { font-size: 0.85rem; color: #777; margin-bottom: 10px; }
         .status-badge { font-size: 0.75rem; padding: 4px 8px; }
@@ -36,43 +35,46 @@
         .modal .table tbody td { font-size: 0.85rem; padding: 8px 8px; text-align: center; }
         .modal .table tbody tr:hover { background-color: #f0f4f8; cursor: pointer; }
         .modal .table tbody tr.selected { background-color: #d5e8fd !important; font-weight: 600; }
+        .field-hint { font-size: 0.78rem; color: #e67e22; margin-top: 4px; min-height: 1rem; }
     </style>
 </head>
 <body>
     <div class="container-fluid" style="max-width: 1400px;">
         <h4 class="page-title">지사별 시행종목 조회</h4>
 
-        <!-- 영역 1: 조회 영역 -->
+        <!-- ① 조회 조건 영역 : REQ-001 / REQ-002 -->
         <div class="section-box">
             <div class="section-title">
                 <span class="badge bg-primary">1</span>
-                조회 영역
+                조회 조건 영역
             </div>
-            <div class="row g-3 mb-3">
+            <div class="row g-3">
                 <div class="col-md-2">
-                    <label class="form-label">지사</label>
+                    <label class="form-label">지사 <span class="text-danger">*</span></label>
                     <select class="form-select" id="branchSelect">
                         <option value="">-- 지사 선택 --</option>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">시험명</label>
-                    <input type="text" class="form-control" id="examNameInput" placeholder="시험 선택 버튼을 눌러주세요" readonly>
+                    <input type="text" class="form-control" id="examNameInput" placeholder="시험 선택 버튼으로 선택" readonly>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-action btn-search w-100" type="button" id="openExamModalBtn" data-bs-toggle="modal" data-bs-target="#examSelectModal">시험 선택</button>
+                <div class="col-md-2 d-flex flex-column justify-content-end">
+                    <button class="btn btn-action btn-search w-100" type="button" id="openExamModalBtn"
+                            data-bs-toggle="modal" data-bs-target="#examSelectModal" disabled>시험 선택</button>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3">
                     <label class="form-label">시험일자</label>
                     <input type="date" class="form-control" id="examDateInput" readonly>
+                    <div class="field-hint" id="dateHint"></div>
                 </div>
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-2 d-flex flex-column justify-content-end">
                     <button class="btn btn-action btn-search w-100" id="searchBtn">조회</button>
                 </div>
             </div>
         </div>
 
-        <!-- 영역 2: 시행종목 목록 -->
+        <!-- ② 목록 영역 : REQ-003 / REQ-004 -->
         <div class="section-box results">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <div class="section-title mb-0">
@@ -80,10 +82,10 @@
                     시행종목 목록
                 </div>
                 <button class="btn btn-action btn-download" type="button" id="excelBtn" disabled>
-                    <i class="bi bi-file-earmark-excel"></i> 엑셀 다운로드
+                    엑셀 다운로드
                 </button>
             </div>
-            <div class="record-count" id="recordCount">조회 조건을 설정한 후 조회하세요.</div>
+            <div class="record-count" id="recordCount">조회 조건을 설정한 후 [조회] 버튼을 클릭하세요.</div>
             <div class="table-container">
                 <table class="table table-bordered table-hover mb-0">
                     <thead>
@@ -103,16 +105,13 @@
                     </tbody>
                 </table>
             </div>
-
             <div class="pagination-container">
-                <nav>
-                    <ul class="pagination mb-0" id="pagination"></ul>
-                </nav>
+                <nav><ul class="pagination mb-0" id="pagination"></ul></nav>
             </div>
         </div>
     </div>
 
-    <!-- 시험 선택 모달 -->
+    <!-- 시험정보 선택 모달 : REQ-001 -->
     <div class="modal fade" id="examSelectModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -140,7 +139,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
-                    <button type="button" class="btn btn-action btn-search" id="examSelectConfirmBtn">선택 완료</button>
+                    <button type="button" class="btn btn-action btn-search" id="examSelectConfirmBtn" disabled>선택 완료</button>
                 </div>
             </div>
         </div>
@@ -152,24 +151,36 @@
         const state = { examId: null, examName: null, examDate: null, branchCode: null, page: 1, size: 20 };
         let modalSelection = null;
 
-        function el(id) { return document.getElementById(id); }
-        function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+        const el = id => document.getElementById(id);
+        const esc = s => (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+        // REQ-001 규칙1 / REQ-002 규칙4 : 지사 목록(단일 선택). 사용자가 직접 선택해야 함(자동선택 없음).
         async function loadBranches() {
             try {
                 const res = await fetch(`${API}/branches`);
                 const json = await res.json();
                 const sel = el('branchSelect');
-                (json.data || []).forEach((b, i) => {
+                (json.data || []).forEach(b => {
                     const opt = document.createElement('option');
                     opt.value = b.branchCode;
                     opt.textContent = b.branchName;
-                    if (i === 0) opt.selected = true;
                     sel.appendChild(opt);
                 });
             } catch (e) { console.error(e); }
         }
 
+        // REQ-002 규칙1 : 지사가 선택되어야 [시험 선택] 버튼 활성화
+        function onBranchChange() {
+            const branchCode = el('branchSelect').value;
+            el('openExamModalBtn').disabled = !branchCode;
+            // 지사 변경 시 기존 시험 선택은 무효 → 재선택 유도(REQ-001 규칙2). 목록은 [조회] 전까지 유지(REQ-002 규칙3).
+            state.examId = state.examName = state.examDate = null;
+            el('examNameInput').value = '';
+            el('examDateInput').value = '';
+            el('dateHint').textContent = '';
+        }
+
+        // REQ-001 규칙1~3, 예외1 : 선택 지사의 시험정보 팝업
         async function loadExamInfos() {
             const branchCode = el('branchSelect').value;
             const body = el('examModalBody');
@@ -188,21 +199,17 @@
                     return;
                 }
                 body.innerHTML = list.map((e, i) => `
-                    <tr data-exam-id="${e.examId}" data-exam-name="${esc(e.examName)}" data-exam-date="${esc(e.examDate)}">
+                    <tr data-id="${e.examId}" data-name="${esc(e.examName)}" data-date="${esc(e.examDate || '')}">
                         <td>${i + 1}</td>
                         <td>T-${String(e.examId).padStart(4, '0')}</td>
                         <td>${esc(e.examName)}</td>
-                        <td>${esc(e.examDate)}</td>
+                        <td>${esc(e.examDate || '-')}</td>
                         <td><span class="badge bg-info status-badge">${e.itemCount}건</span></td>
                     </tr>`).join('');
                 body.querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => {
                     body.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
                     tr.classList.add('selected');
-                    modalSelection = {
-                        examId: Number(tr.dataset.examId),
-                        examName: tr.dataset.examName,
-                        examDate: tr.dataset.examDate
-                    };
+                    modalSelection = { examId: Number(tr.dataset.id), examName: tr.dataset.name, examDate: tr.dataset.date };
                     el('examSelectConfirmBtn').disabled = false;
                 }));
             } catch (e) {
@@ -210,20 +217,29 @@
             }
         }
 
+        // REQ-002 규칙2 : 선택 시험의 시험일자 자동 세팅(수정 불가). 예외1 : 일자 없으면 공란+안내.
         function confirmExamSelection() {
             if (!modalSelection) return;
             state.examId = modalSelection.examId;
             state.examName = modalSelection.examName;
-            state.examDate = modalSelection.examDate;
             el('examNameInput').value = modalSelection.examName;
-            el('examDateInput').value = modalSelection.examDate;
+            if (!modalSelection.examDate) {
+                state.examDate = null;
+                el('examDateInput').value = '';
+                el('dateHint').textContent = '선택한 시험정보에 시험일자가 없습니다. 관리자에게 문의하세요.';
+            } else {
+                state.examDate = modalSelection.examDate;
+                el('examDateInput').value = modalSelection.examDate;
+                el('dateHint').textContent = '';
+            }
             bootstrap.Modal.getInstance(el('examSelectModal')).hide();
         }
 
+        // REQ-003 규칙1·4, 예외2 : 필수 조건 모두 세팅 시에만 조회
         async function searchItems(page = 1) {
             state.branchCode = el('branchSelect').value;
             if (!state.examId || !state.branchCode || !state.examDate) {
-                alert('지사와 시험을 선택한 후 조회해 주세요.');
+                alert('조회 조건을 확인해 주세요.');
                 return;
             }
             state.page = page;
@@ -241,6 +257,7 @@
             }
         }
 
+        // REQ-003 예외1 / REQ-004 규칙1·예외1 : 결과 없으면 안내 + 엑셀 버튼 비활성
         function renderEmpty(msg) {
             el('itemTableBody').innerHTML = `<tr><td colspan="8" class="empty-message">${esc(msg)}</td></tr>`;
             el('recordCount').textContent = msg;
@@ -248,6 +265,7 @@
             el('excelBtn').disabled = true;
         }
 
+        // REQ-003 규칙2·3·5·6
         function renderItems(data) {
             const list = data.list || [];
             const p = data.pagination;
@@ -263,15 +281,14 @@
                     <td>${esc(it.part)}</td>
                     <td><span class="badge ${it.exposeYn === 'Y' ? 'bg-success' : 'bg-danger'} status-badge">${esc(it.exposeYn)}</span></td>
                 </tr>`).join('');
-            el('recordCount').innerHTML = `총 <strong>${p.totalCount}</strong>건 (페이지당 ${p.pageSize}건 표시, ${p.currentPage}/${p.totalPages} 페이지)`;
-            el('excelBtn').disabled = false;
+            el('recordCount').innerHTML = `총 <strong>${p.totalCount}</strong>건 (페이지당 ${p.pageSize}건 표시 · ${p.currentPage}/${p.totalPages} 페이지)`;
+            el('excelBtn').disabled = false; // REQ-004 규칙1 : 1건 이상 시 활성
             renderPagination(p);
         }
 
         function renderPagination(p) {
             const ul = el('pagination');
-            let html = '';
-            html += `<li class="page-item ${p.hasPrevious ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.currentPage - 1}">&laquo; 이전</a></li>`;
+            let html = `<li class="page-item ${p.hasPrevious ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.currentPage - 1}">&laquo; 이전</a></li>`;
             for (let i = 1; i <= p.totalPages; i++) {
                 html += `<li class="page-item ${i === p.currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
             }
@@ -284,6 +301,7 @@
             }));
         }
 
+        // REQ-004 규칙2·3 : 전체 목록 .xlsx 다운로드(파일명 서버 생성)
         function downloadExcel() {
             if (!state.examId || !state.branchCode || !state.examDate) return;
             const qs = new URLSearchParams({
@@ -294,6 +312,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             loadBranches();
+            el('branchSelect').addEventListener('change', onBranchChange);
             el('examSelectModal').addEventListener('show.bs.modal', loadExamInfos);
             el('examSelectConfirmBtn').addEventListener('click', confirmExamSelection);
             el('searchBtn').addEventListener('click', () => searchItems(1));
