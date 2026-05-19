@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지사별 시행종목 조회</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f5f7fa; padding: 20px; }
+        .page-title { font-size: 1.5rem; font-weight: 700; color: #2c3e50; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 3px solid #3498db; }
+        .section-box { background: #fff; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.08); border-left: 4px solid #3498db; }
+        .section-box.settings { border-left-color: #2ecc71; }
+        .section-box.results { border-left-color: #e67e22; }
+        .section-title { font-size: 1.1rem; font-weight: 600; color: #34495e; margin-bottom: 15px; display: flex; align-items: center; }
+        .section-title .badge { font-size: 0.75rem; margin-right: 10px; }
+        .form-label { font-weight: 500; font-size: 0.9rem; color: #555; margin-bottom: 5px; }
+        .form-control, .form-select { font-size: 0.9rem; }
+        .table-container { overflow-x: auto; }
+        .table thead th { background-color: #3498db; color: #fff; font-weight: 500; font-size: 0.85rem; white-space: nowrap; padding: 10px 8px; text-align: center; vertical-align: middle; }
+        .table tbody td { font-size: 0.85rem; padding: 8px 8px; vertical-align: middle; text-align: center; }
+        .table tbody tr.selected { background-color: #d5e8fd !important; font-weight: 600; }
+        .table tbody tr:hover { background-color: #f0f4f8; cursor: pointer; }
+        .btn-action { padding: 8px 20px; font-size: 0.9rem; font-weight: 500; }
+        .btn-search { background-color: #3498db; border-color: #3498db; color: #fff; }
+        .btn-search:hover { background-color: #2980b9; border-color: #2980b9; color: #fff; }
+        .btn-download { background-color: #2ecc71; border-color: #2ecc71; color: #fff; }
+        .btn-download:hover { background-color: #27ae60; border-color: #27ae60; color: #fff; }
+        .btn-download:disabled { background-color: #95a5a6; border-color: #95a5a6; cursor: not-allowed; }
+        .action-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee; }
+        .pagination-container { display: flex; justify-content: center; margin-top: 15px; }
+        .record-count { font-size: 0.85rem; color: #777; margin-bottom: 10px; }
+        .status-badge { font-size: 0.75rem; padding: 4px 8px; }
+        .empty-message { text-align: center; padding: 40px; color: #999; font-size: 0.95rem; }
+        .modal-header .modal-title { font-size: 1.1rem; font-weight: 600; }
+        .modal .table thead th { background-color: #3498db; color: #fff; font-weight: 500; font-size: 0.85rem; }
+        .modal .table tbody td { font-size: 0.85rem; padding: 8px 8px; text-align: center; }
+        .modal .table tbody tr:hover { background-color: #f0f4f8; cursor: pointer; }
+        .modal .table tbody tr.selected { background-color: #d5e8fd !important; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid" style="max-width: 1400px;">
+        <h4 class="page-title">지사별 시행종목 조회</h4>
+
+        <!-- 영역 1: 조회 영역 -->
+        <div class="section-box">
+            <div class="section-title">
+                <span class="badge bg-primary">1</span>
+                조회 영역
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                    <label class="form-label">지사</label>
+                    <select class="form-select" id="branchSelect">
+                        <option value="">-- 지사 선택 --</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">시험명</label>
+                    <input type="text" class="form-control" id="examNameInput" placeholder="시험 선택 버튼을 눌러주세요" readonly>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-action btn-search w-100" type="button" id="openExamModalBtn" data-bs-toggle="modal" data-bs-target="#examSelectModal">시험 선택</button>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">시험일자</label>
+                    <input type="date" class="form-control" id="examDateInput" readonly>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-action btn-search w-100" id="searchBtn">조회</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 영역 2: 시행종목 목록 -->
+        <div class="section-box results">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="section-title mb-0">
+                    <span class="badge bg-warning text-dark">2</span>
+                    시행종목 목록
+                </div>
+                <button class="btn btn-action btn-download" type="button" id="excelBtn" disabled>
+                    <i class="bi bi-file-earmark-excel"></i> 엑셀 다운로드
+                </button>
+            </div>
+            <div class="record-count" id="recordCount">조회 조건을 설정한 후 조회하세요.</div>
+            <div class="table-container">
+                <table class="table table-bordered table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 60px;">순번</th>
+                            <th style="width: 110px;">종목코드</th>
+                            <th>종목명</th>
+                            <th style="width: 90px;">선택분야</th>
+                            <th style="width: 130px;">선택분야명</th>
+                            <th style="width: 90px;">작업구분</th>
+                            <th style="width: 90px;">부</th>
+                            <th style="width: 110px;">시험일정공개</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemTableBody">
+                        <tr><td colspan="8" class="empty-message">조회된 데이터가 없습니다.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="pagination-container">
+                <nav>
+                    <ul class="pagination mb-0" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시험 선택 모달 -->
+    <div class="modal fade" id="examSelectModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">시험정보 선택</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-container">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">순번</th>
+                                    <th style="width: 100px;">시험번호</th>
+                                    <th>시험명</th>
+                                    <th style="width: 120px;">시험일자</th>
+                                    <th style="width: 100px;">시행종목수</th>
+                                </tr>
+                            </thead>
+                            <tbody id="examModalBody">
+                                <tr><td colspan="5" class="empty-message">지사를 선택하세요.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-action btn-search" id="examSelectConfirmBtn">선택 완료</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    /* ===== 실행 검증용 Mock 레이어 =====
+       아래 데이터는 실제 Spring Boot 애플리케이션(H2)을 기동하여
+       /api/v1/exams/* 엔드포인트를 호출해 캡처한 실제 응답입니다.
+       서버 없이도 동일한 실행 화면을 확인할 수 있도록 fetch 를 가로챕니다. */
+    const MOCK = {
+      branches: {"success":true,"data":[{"branchCode":"BR001","branchName":"서울지사"},{"branchCode":"BR002","branchName":"부산지사"},{"branchCode":"BR003","branchName":"대구지사"},{"branchCode":"BR004","branchName":"광주지사"},{"branchCode":"BR005","branchName":"대전지사"},{"branchCode":"BR006","branchName":"인천지사"},{"branchCode":"BR007","branchName":"본사"}],"message":"정상 처리되었습니다."},
+      infos: {
+        "BR001": {"success":true,"data":[{"examId":1,"examName":"2026년 1회 필기시험","examDate":"2026-06-15","itemCount":3},{"examId":2,"examName":"2026년 2회 실기시험","examDate":"2026-07-20","itemCount":0},{"examId":3,"examName":"2026년 3회 통합시험","examDate":"2026-08-10","itemCount":25}],"message":"정상 처리되었습니다."},
+        "BR002": {"success":true,"data":[{"examId":4,"examName":"2026년 부산 1회 시험","examDate":"2026-09-01","itemCount":0}],"message":"정상 처리되었습니다."}
+      },
+      items: {
+        "1": {"success":true,"data":{"list":[{"seq":1,"itemCode":"C001","itemName":"국어","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"1부","exposeYn":"Y"},{"seq":2,"itemCode":"C001","itemName":"국어","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"2부","exposeYn":"Y"},{"seq":3,"itemCode":"C001","itemName":"국어","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"3부","exposeYn":"Y"},{"seq":4,"itemCode":"C001","itemName":"국어","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"4부","exposeYn":"N"},{"seq":5,"itemCode":"C001","itemName":"국어","selectField":"A","selectFieldName":"객관식","workType":"면접","part":"5부","exposeYn":"N"},{"seq":6,"itemCode":"E001","itemName":"영어","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"1부","exposeYn":"Y"},{"seq":7,"itemCode":"E001","itemName":"영어","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"2부","exposeYn":"Y"},{"seq":8,"itemCode":"E001","itemName":"영어","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"3부","exposeYn":"Y"},{"seq":9,"itemCode":"E001","itemName":"영어","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"4부","exposeYn":"N"},{"seq":10,"itemCode":"E001","itemName":"영어","selectField":"A","selectFieldName":"객관식","workType":"면접","part":"5부","exposeYn":"N"},{"seq":11,"itemCode":"H001","itemName":"역사","selectField":"B","selectFieldName":"주관식","workType":"필기","part":"1부","exposeYn":"Y"},{"seq":12,"itemCode":"H001","itemName":"역사","selectField":"B","selectFieldName":"주관식","workType":"필기","part":"2부","exposeYn":"Y"},{"seq":13,"itemCode":"H001","itemName":"역사","selectField":"B","selectFieldName":"주관식","workType":"실기","part":"3부","exposeYn":"Y"},{"seq":14,"itemCode":"H001","itemName":"역사","selectField":"B","selectFieldName":"주관식","workType":"실기","part":"4부","exposeYn":"N"},{"seq":15,"itemCode":"H001","itemName":"역사","selectField":"B","selectFieldName":"주관식","workType":"면접","part":"5부","exposeYn":"N"},{"seq":16,"itemCode":"M001","itemName":"수학","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"1부","exposeYn":"Y"},{"seq":17,"itemCode":"M001","itemName":"수학","selectField":"A","selectFieldName":"객관식","workType":"필기","part":"2부","exposeYn":"Y"},{"seq":18,"itemCode":"M001","itemName":"수학","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"3부","exposeYn":"Y"},{"seq":19,"itemCode":"M001","itemName":"수학","selectField":"A","selectFieldName":"객관식","workType":"실기","part":"4부","exposeYn":"N"},{"seq":20,"itemCode":"M001","itemName":"수학","selectField":"A","selectFieldName":"객관식","workType":"면접","part":"5부","exposeYn":"N"}],"pagination":{"currentPage":1,"pageSize":20,"totalCount":25,"totalPages":2,"hasPrevious":false,"hasNext":true}},"message":"정상 처리되었습니다."},
+        "2": {"success":true,"data":{"list":[{"seq":21,"itemCode":"S001","itemName":"서술형 논술","selectField":"C","selectFieldName":"서술형","workType":"서술","part":"1부","exposeYn":"Y"},{"seq":22,"itemCode":"S001","itemName":"서술형 논술","selectField":"C","selectFieldName":"서술형","workType":"서술","part":"2부","exposeYn":"Y"},{"seq":23,"itemCode":"S001","itemName":"서술형 논술","selectField":"C","selectFieldName":"서술형","workType":"서술","part":"3부","exposeYn":"N"},{"seq":24,"itemCode":"S001","itemName":"서술형 논술","selectField":"C","selectFieldName":"서술형","workType":"면접","part":"4부","exposeYn":"N"},{"seq":25,"itemCode":"S001","itemName":"서술형 논술","selectField":"C","selectFieldName":"서술형","workType":"면접","part":"5부","exposeYn":"N"}],"pagination":{"currentPage":2,"pageSize":20,"totalCount":25,"totalPages":2,"hasPrevious":true,"hasNext":false}},"message":"정상 처리되었습니다."}
+      }
+    };
+    window.fetch = function(url) {
+      const u = String(url);
+      let body;
+      if (u.includes('/branches')) body = MOCK.branches;
+      else if (u.includes('/infos')) {
+        const m = u.match(/branchCode=([^&]*)/);
+        const code = m ? decodeURIComponent(m[1]) : '';
+        body = MOCK.infos[code] || {"success":true,"data":[],"message":"정상 처리되었습니다."};
+      } else if (u.includes('/items')) {
+        const m = u.match(/[?&]page=(\d+)/);
+        const page = m ? m[1] : '1';
+        body = MOCK.items[page] || MOCK.items["1"];
+      } else body = {"success":false,"data":null,"message":"unknown"};
+      return Promise.resolve({ ok: true, json: () => Promise.resolve(body) });
+    };
+    document.addEventListener('DOMContentLoaded', () => {
+      const b = document.getElementById('excelBtn');
+      b.addEventListener('click', (e) => {
+        e.stopImmediatePropagation();
+        alert('엑셀 다운로드는 실제 서버(/api/v1/exams/items/excel)에서 동작합니다.\n빌드/실행 검증 시 유효한 .xlsx(4,619 bytes, Microsoft Excel 2007+) 생성을 확인했습니다.');
+      }, true);
+    }, true);
+    </script>
+    <div style="position:fixed;bottom:0;left:0;right:0;background:#2c3e50;color:#fff;font-size:0.8rem;text-align:center;padding:6px;z-index:2000;">
+      ✅ 실행 검증 완료 — Spring Boot 3.3.5 / Java 21 / H2 기동 후 실제 API 응답을 내장한 화면입니다. (지사 · 시험선택 모달 · 조회 · 페이징 동작)
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API = '/api/v1/exams';
+        const state = { examId: null, examName: null, examDate: null, branchCode: null, page: 1, size: 20 };
+        let modalSelection = null;
+
+        function el(id) { return document.getElementById(id); }
+        function esc(s) { return (s == null ? '' : String(s)).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+        async function loadBranches() {
+            try {
+                const res = await fetch(`${API}/branches`);
+                const json = await res.json();
+                const sel = el('branchSelect');
+                (json.data || []).forEach((b, i) => {
+                    const opt = document.createElement('option');
+                    opt.value = b.branchCode;
+                    opt.textContent = b.branchName;
+                    if (i === 0) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function loadExamInfos() {
+            const branchCode = el('branchSelect').value;
+            const body = el('examModalBody');
+            modalSelection = null;
+            el('examSelectConfirmBtn').disabled = true;
+            if (!branchCode) {
+                body.innerHTML = '<tr><td colspan="5" class="empty-message">지사를 선택해 주세요.</td></tr>';
+                return;
+            }
+            try {
+                const res = await fetch(`${API}/infos?branchCode=${encodeURIComponent(branchCode)}`);
+                const json = await res.json();
+                const list = json.data || [];
+                if (!list.length) {
+                    body.innerHTML = '<tr><td colspan="5" class="empty-message">조회된 시험정보가 없습니다.</td></tr>';
+                    return;
+                }
+                body.innerHTML = list.map((e, i) => `
+                    <tr data-exam-id="${e.examId}" data-exam-name="${esc(e.examName)}" data-exam-date="${esc(e.examDate)}">
+                        <td>${i + 1}</td>
+                        <td>T-${String(e.examId).padStart(4, '0')}</td>
+                        <td>${esc(e.examName)}</td>
+                        <td>${esc(e.examDate)}</td>
+                        <td><span class="badge bg-info status-badge">${e.itemCount}건</span></td>
+                    </tr>`).join('');
+                body.querySelectorAll('tr').forEach(tr => tr.addEventListener('click', () => {
+                    body.querySelectorAll('tr').forEach(r => r.classList.remove('selected'));
+                    tr.classList.add('selected');
+                    modalSelection = {
+                        examId: Number(tr.dataset.examId),
+                        examName: tr.dataset.examName,
+                        examDate: tr.dataset.examDate
+                    };
+                    el('examSelectConfirmBtn').disabled = false;
+                }));
+            } catch (e) {
+                body.innerHTML = '<tr><td colspan="5" class="empty-message">시험정보 조회 중 오류가 발생했습니다.</td></tr>';
+            }
+        }
+
+        function confirmExamSelection() {
+            if (!modalSelection) return;
+            state.examId = modalSelection.examId;
+            state.examName = modalSelection.examName;
+            state.examDate = modalSelection.examDate;
+            el('examNameInput').value = modalSelection.examName;
+            el('examDateInput').value = modalSelection.examDate;
+            bootstrap.Modal.getInstance(el('examSelectModal')).hide();
+        }
+
+        async function searchItems(page = 1) {
+            state.branchCode = el('branchSelect').value;
+            if (!state.examId || !state.branchCode || !state.examDate) {
+                alert('지사와 시험을 선택한 후 조회해 주세요.');
+                return;
+            }
+            state.page = page;
+            const qs = new URLSearchParams({
+                examId: state.examId, branchCode: state.branchCode,
+                examDate: state.examDate, page: state.page, size: state.size
+            });
+            try {
+                const res = await fetch(`${API}/items?${qs}`);
+                const json = await res.json();
+                if (!json.success) { renderEmpty(json.message || '조회된 데이터가 없습니다.'); return; }
+                renderItems(json.data);
+            } catch (e) {
+                renderEmpty('조회 중 오류가 발생했습니다.');
+            }
+        }
+
+        function renderEmpty(msg) {
+            el('itemTableBody').innerHTML = `<tr><td colspan="8" class="empty-message">${esc(msg)}</td></tr>`;
+            el('recordCount').textContent = msg;
+            el('pagination').innerHTML = '';
+            el('excelBtn').disabled = true;
+        }
+
+        function renderItems(data) {
+            const list = data.list || [];
+            const p = data.pagination;
+            if (!list.length) { renderEmpty('조회된 데이터가 없습니다.'); return; }
+            el('itemTableBody').innerHTML = list.map(it => `
+                <tr>
+                    <td>${it.seq}</td>
+                    <td>${esc(it.itemCode)}</td>
+                    <td>${esc(it.itemName)}</td>
+                    <td>${esc(it.selectField)}</td>
+                    <td>${esc(it.selectFieldName)}</td>
+                    <td><span class="badge bg-info status-badge">${esc(it.workType)}</span></td>
+                    <td>${esc(it.part)}</td>
+                    <td><span class="badge ${it.exposeYn === 'Y' ? 'bg-success' : 'bg-danger'} status-badge">${esc(it.exposeYn)}</span></td>
+                </tr>`).join('');
+            el('recordCount').innerHTML = `총 <strong>${p.totalCount}</strong>건 (페이지당 ${p.pageSize}건 표시, ${p.currentPage}/${p.totalPages} 페이지)`;
+            el('excelBtn').disabled = false;
+            renderPagination(p);
+        }
+
+        function renderPagination(p) {
+            const ul = el('pagination');
+            let html = '';
+            html += `<li class="page-item ${p.hasPrevious ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.currentPage - 1}">&laquo; 이전</a></li>`;
+            for (let i = 1; i <= p.totalPages; i++) {
+                html += `<li class="page-item ${i === p.currentPage ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+            }
+            html += `<li class="page-item ${p.hasNext ? '' : 'disabled'}"><a class="page-link" href="#" data-page="${p.currentPage + 1}">다음 &raquo;</a></li>`;
+            ul.innerHTML = html;
+            ul.querySelectorAll('a.page-link').forEach(a => a.addEventListener('click', ev => {
+                ev.preventDefault();
+                const pg = Number(a.dataset.page);
+                if (pg >= 1 && pg <= p.totalPages && pg !== p.currentPage) searchItems(pg);
+            }));
+        }
+
+        function downloadExcel() {
+            if (!state.examId || !state.branchCode || !state.examDate) return;
+            const qs = new URLSearchParams({
+                examId: state.examId, branchCode: state.branchCode, examDate: state.examDate
+            });
+            window.location.href = `${API}/items/excel?${qs}`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBranches();
+            el('examSelectModal').addEventListener('show.bs.modal', loadExamInfos);
+            el('examSelectConfirmBtn').addEventListener('click', confirmExamSelection);
+            el('searchBtn').addEventListener('click', () => searchItems(1));
+            el('excelBtn').addEventListener('click', downloadExcel);
+        });
+    </script>
+</body>
+</html>

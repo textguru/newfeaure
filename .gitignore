@@ -8,3 +8,7 @@ __history
 *.exe
 *.dll
 bin/*
+target/
+*.class
+.idea/
+*.iml
