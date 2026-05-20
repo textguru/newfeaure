@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지사별 시행종목 조회</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== 기본 스타일 ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+            min-height: 100vh;
+        }
+
+        /* ===== 브레드크럼 및 타이틀 ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .page-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-title .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            background-color: #3b82f6;
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .breadcrumb {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .breadcrumb span {
+            color: #94a3b8;
+            margin: 0 4px;
+        }
+
+        /* ===== 검색 필터 영역 ===== */
+        .filter-container {
+            background-color: #f1f5f9;
+            padding: 15px 20px;
+            margin: 10px 20px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 60px;
+            text-align: right;
+            color: #475569;
+        }
+
+        input, select {
+            border: 1px solid #cbd5e1;
+            padding: 4px 8px;
+            border-radius: 2px;
+            font-size: 13px;
+            height: 32px;
+            background: white;
+            font-family: 'Noto Sans KR', sans-serif;
+            color: #334155;
+        }
+
+        input:focus, select:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: -1px;
+        }
+
+        input[readonly] {
+            background-color: #f1f5f9;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        /* ===== 버튼 스타일 ===== */
+        .btn {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Noto Sans KR', sans-serif;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+            border: 1px solid #1d4ed8;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #1d4ed8;
+        }
+
+        .btn-outline {
+            background-color: white;
+            color: #2563eb;
+            border: 1px solid #2563eb;
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background-color: #eff6ff;
+        }
+
+        .btn-save {
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+        }
+
+        .btn-save:hover:not(:disabled) {
+            background-color: #2563eb;
+        }
+
+        .btn-delete {
+            background-color: #f43f5e;
+            color: white;
+            border: none;
+        }
+
+        .btn-delete:hover:not(:disabled) {
+            background-color: #e11d48;
+        }
+
+        .btn-download {
+            background-color: #10b981;
+            color: white;
+            border: none;
+        }
+
+        .btn-download:hover:not(:disabled) {
+            background-color: #059669;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* ===== 테이블 영역 ===== */
+        .table-section {
+            padding: 0 20px;
+            margin-top: 20px;
+        }
+
+        .table-header-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 10px;
+        }
+
+        .table-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-title .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            background-color: #f59e0b;
+            color: white;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        .record-count {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .record-count strong {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-top: 2px solid #1d4ed8;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            font-weight: 600;
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            border-right: 1px solid #e2e8f0;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            border-right: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        tr:hover {
+            background-color: #eff6ff;
+        }
+
+        tr.selected {
+            background-color: #dbeafe !important;
+            font-weight: 600;
+        }
+
+        /* ===== 상태 뱃지 ===== */
+        .status-badge {
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .status-y {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+
+        .status-n {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-work-obj {
+            background-color: #e0f2fe;
+            color: #075985;
+        }
+
+        .status-work-sub {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-work-desc {
+            background-color: #e2e8f0;
+            color: #475569;
+        }
+
+        .status-expected {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        /* ===== 페이지네이션 ===== */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin: 25px 0;
+        }
+
+        .page-item {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #e2e8f0;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 13px;
+            background: white;
+            color: #475569;
+            transition: all 0.2s;
+        }
+
+        .page-item:hover {
+            background-color: #f1f5f9;
+        }
+
+        .page-item.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .page-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ===== 모달 스타일 ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            width: 700px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #64748b;
+            padding: 0;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .modal-close:hover {
+            background-color: #f1f5f9;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 15px 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        /* ===== 빈 메시지 ===== */
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* ===== 반응형 ===== */
+        @media (max-width: 768px) {
+            .filter-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-item {
+                width: 100%;
+            }
+
+            .filter-label {
+                min-width: auto;
+                text-align: left;
+            }
+
+            .filter-actions {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            .filter-actions .btn {
+                flex: 1;
+            }
+
+            .modal {
+                width: 95%;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 페이지 헤더 (브레드크럼 + 타이틀) -->
+    <div class="page-header">
+        <div class="page-title">
+            <span class="badge">QIS</span>
+            지사별 시행종목 조회
+        </div>
+        <div class="breadcrumb">
+            메인 <span>&gt;</span> 자격시험 <span>&gt;</span> 지사별 시행종목 조회
+        </div>
+    </div>
+
+    <!-- 영역 1: 조회 영역 -->
+    <div class="filter-container">
+        <div class="filter-row">
+            <div class="filter-item">
+                <label class="filter-label">지사</label>
+                <select>
+                    <option value="">-- 지사 선택 --</option>
+                    <option value="HEAD" selected>본사</option>
+                    <option value="SEOUL">서울지사</option>
+                    <option value="BUSAN">부산지사</option>
+                    <option value="DAEGU">대구지사</option>
+                    <option value="GWANGJU">광주지사</option>
+                    <option value="DAEJEON">대전지사</option>
+                    <option value="INCHEON">인천지사</option>
+                </select>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">시험명</label>
+                <input type="text" placeholder="시험명 입력">
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">시험선택</label>
+                <button class="btn btn-primary" id="openExamModal">시험 선택</button>
+            </div>
+            <div class="filter-item">
+                <label class="filter-label">시험일자</label>
+                <input type="date" value="2026-08-10" readonly>
+            </div>
+            <div class="filter-actions">
+                <button class="btn btn-outline">조회</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 영역 2: 시행종목 목록 -->
+    <div class="table-section">
+        <div class="table-header-info">
+            <div class="table-title">
+                <span class="badge">2</span>
+                시행종목 목록
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <div class="record-count">총 <strong>45</strong>건 (페이지당 20건 표시)</div>
+                <button class="btn btn-download" disabled>
+                    <span>📥</span> 엑셀 다운로드
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">순번</th>
+                        <th style="width: 100px;">종목코드</th>
+                        <th>종목명</th>
+                        <th style="width: 80px;">선택분야</th>
+                        <th style="width: 120px;">선택분야명</th>
+                        <th style="width: 80px;">작업구분</th>
+                        <th style="width: 100px;">부</th>
+                        <th style="width: 80px;">시험일정공개</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>C001</td>
+                        <td>국어</td>
+                        <td>A</td>
+                        <td>객관식</td>
+                        <td><span class="status-badge status-work-obj">객관식</span></td>
+                        <td>교육부</td>
+                        <td><span class="status-badge status-y">Y</span></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>M001</td>
+                        <td>수학</td>
+                        <td>A</td>
+                        <td>객관식</td>
+                        <td><span class="status-badge status-work-obj">객관식</span></td>
+                        <td>교육부</td>
+                        <td><span class="status-badge status-y">Y</span></td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>E001</td>
+                        <td>영어</td>
+                        <td>A</td>
+                        <td>객관식</td>
+                        <td><span class="status-badge status-work-obj">객관식</span></td>
+                        <td>언어부</td>
+                        <td><span class="status-badge status-y">Y</span></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>H001</td>
+                        <td>역사</td>
+                        <td>B</td>
+                        <td>주관식</td>
+                        <td><span class="status-badge status-work-sub">주관식</span></td>
+                        <td>인문부</td>
+                        <td><span class="status-badge status-y">Y</span></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>S001</td>
+                        <td>서술형 논술</td>
+                        <td>C</td>
+                        <td>서술형</td>
+                        <td><span class="status-badge status-work-desc">서술형</span></td>
+                        <td>논술부</td>
+                        <td><span class="status-badge status-n">N</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div class="pagination">
+            <div class="page-item disabled">&laquo;</div>
+            <div class="page-item active">1</div>
+            <div class="page-item">2</div>
+            <div class="page-item">3</div>
+            <div class="page-item">4</div>
+            <div class="page-item">5</div>
+            <div class="page-item">&raquo;</div>
+        </div>
+    </div>
+
+    <!-- 시험 선택 모달 -->
+    <div class="modal-overlay" id="examModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">시험정보 선택</div>
+                <button class="modal-close" id="closeExamModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">순번</th>
+                                <th style="width: 100px;">시험번호</th>
+                                <th>시험명</th>
+                                <th style="width: 120px;">시험일자</th>
+                                <th style="width: 100px;">상태</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>1</td>
+                                <td>T-2026-001</td>
+                                <td>2026년 1회 필기시험</td>
+                                <td>2026-06-15</td>
+                                <td><span class="status-badge status-expected">예정</span></td>
+                            </tr>
+                            <tr>
+                                <td>2</td>
+                                <td>T-2026-002</td>
+                                <td>2026년 2회 실기시험</td>
+                                <td>2026-07-20</td>
+                                <td><span class="status-badge status-expected">예정</span></td>
+                            </tr>
+                            <tr class="selected">
+                                <td>3</td>
+                                <td>T-2026-003</td>
+                                <td>2026년 3회 통합시험</td>
+                                <td>2026-08-10</td>
+                                <td><span class="status-badge status-expected">예정</span></td>
+                            </tr>
+                            <tr>
+                                <td>4</td>
+                                <td>T-2026-004</td>
+                                <td>2026년 4회 필기시험</td>
+                                <td>2026-09-15</td>
+                                <td><span class="status-badge status-expected">예정</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelExamModal">닫기</button>
+                <button class="btn btn-save">선택 완료</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 모달 열기/닫기
+        document.getElementById('openExamModal').addEventListener('click', function() {
+            document.getElementById('examModal').classList.add('active');
+        });
+
+        document.getElementById('closeExamModal').addEventListener('click', function() {
+            document.getElementById('examModal').classList.remove('active');
+        });
+
+        document.getElementById('cancelExamModal').addEventListener('click', function() {
+            document.getElementById('examModal').classList.remove('active');
+        });
+
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('examModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+
+        // 테이블 행 클릭 시 선택
+        document.querySelectorAll('.modal tbody tr').forEach(function(row) {
+            row.addEventListener('click', function() {
+                document.querySelectorAll('.modal tbody tr').forEach(function(r) {
+                    r.classList.remove('selected');
+                });
+                this.classList.add('selected');
+            });
+        });
+
+        // 페이지네이션 클릭
+        document.querySelectorAll('.page-item:not(.disabled)').forEach(function(item) {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                document.querySelectorAll('.pagination .page-item').forEach(function(p) {
+                    p.classList.remove('active');
+                });
+                this.classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

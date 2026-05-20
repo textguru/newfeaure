@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.nqis.qis.exam.dao.ExamInfoDAO">
+
+    <resultMap id="examInfoResultMap" type="kr.or.nqis.qis.exam.vo.ExamInfoVO">
+        <result column="EXAM_ID"     property="examId"/>
+        <result column="EXAM_NAME"   property="examName"/>
+        <result column="EXAM_DATE"   property="examDate"/>
+        <result column="BRANCH_CODE" property="branchCode"/>
+        <result column="EXAM_TYPE"   property="examType"/>
+        <result column="EXAM_DESC"   property="examDesc"/>
+        <result column="ITEM_COUNT"  property="itemCount"/>
+        <result column="USE_YN"      property="useYn"/>
+    </resultMap>
+
+    <!-- API-02: 지사별 시험정보 목록 (REQ-001) -->
+    <select id="selectExamInfoList" parameterType="kr.or.nqis.qis.exam.vo.ExamInfoVO"
+            resultMap="examInfoResultMap">
+        SELECT
+            ei.EXAM_ID,
+            ei.EXAM_NAME,
+            TO_CHAR(ei.EXAM_DATE, 'YYYYMMDD') AS EXAM_DATE,
+            ei.BRANCH_CODE,
+            ei.EXAM_TYPE,
+            ei.EXAM_DESC,
+            ei.USE_YN,
+            (
+                SELECT COUNT(1)
+                FROM EXAM_ITEM xi
+                WHERE xi.EXAM_ID = ei.EXAM_ID
+                  AND xi.BRANCH_CODE = ei.BRANCH_CODE
+            ) AS ITEM_COUNT
+        FROM EXAM_INFO ei
+        WHERE ei.USE_YN = 'Y'
+          AND ei.BRANCH_CODE = #{branchCode}
+        ORDER BY ei.EXAM_DATE ASC, ei.EXAM_NAME ASC
+    </select>
+
+    <!-- 단건 시험정보 조회 (REQ-004 파일명 생성용) -->
+    <select id="selectExamInfo" parameterType="kr.or.nqis.qis.exam.vo.ExamInfoVO"
+            resultMap="examInfoResultMap">
+        SELECT
+            EXAM_ID,
+            EXAM_NAME,
+            TO_CHAR(EXAM_DATE, 'YYYYMMDD') AS EXAM_DATE,
+            BRANCH_CODE,
+            EXAM_TYPE,
+            EXAM_DESC,
+            USE_YN
+        FROM EXAM_INFO
+        WHERE EXAM_ID = #{examId}
+          AND USE_YN = 'Y'
+    </select>
+
+</mapper>

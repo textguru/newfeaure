@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지사별 시행종목 조회</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 페이지 헤더 -->
+<div class="page-header">
+    <div class="page-title">
+        <span class="badge">QIS</span>
+        지사별 시행종목 조회
+    </div>
+    <div class="breadcrumb">
+        메인 <span>&gt;</span> 자격시험 <span>&gt;</span> 지사별 시행종목 조회
+    </div>
+</div>
+
+<!-- 영역 1: 조회 조건 -->
+<div class="filter-container">
+    <div class="filter-row">
+        <div class="filter-item">
+            <label class="filter-label" for="branchSelect">지사</label>
+            <select id="branchSelect" aria-label="지사 선택">
+                <option value="">-- 지사 선택 --</option>
+            </select>
+        </div>
+        <div class="filter-item">
+            <label class="filter-label" for="examNameDisplay">시험명</label>
+            <input type="text" id="examNameDisplay" placeholder="시험을 선택하세요" readonly>
+            <input type="hidden" id="examIdHidden" value="">
+        </div>
+        <div class="filter-item">
+            <label class="filter-label">시험선택</label>
+            <button type="button" class="btn btn-primary" id="openExamModal" disabled>시험 선택</button>
+        </div>
+        <div class="filter-item">
+            <label class="filter-label" for="examDateInput">시험일자</label>
+            <input type="text" id="examDateInput" value="" readonly>
+        </div>
+        <div class="filter-actions">
+            <button type="button" class="btn btn-outline" id="searchBtn">조회</button>
+        </div>
+    </div>
+</div>
+
+<!-- 영역 2: 시행종목 목록 -->
+<div class="table-section">
+    <div class="table-header-info">
+        <div class="table-title">
+            <span class="badge" id="resultCountBadge">0</span>
+            시행종목 목록
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="record-count">총 <strong id="totalCount">0</strong>건 (페이지당 20건 표시)</div>
+            <button type="button" class="btn btn-download" id="excelDownloadBtn" disabled>
+                <span>📥</span> 엑셀 다운로드
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+            <tr>
+                <th style="width: 60px;">순번</th>
+                <th style="width: 100px;">종목코드</th>
+                <th>종목명</th>
+                <th style="width: 80px;">선택분야</th>
+                <th style="width: 120px;">선택분야명</th>
+                <th style="width: 80px;">작업구분</th>
+                <th style="width: 100px;">부</th>
+                <th style="width: 80px;">시험일정공개</th>
+            </tr>
+            </thead>
+            <tbody id="examItemTableBody">
+            <tr>
+                <td colspan="8" class="empty-message">지사와 시험을 선택한 뒤 조회 버튼을 클릭하세요.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 페이지네이션 -->
+    <div class="pagination" id="pagination"></div>
+</div>
+
+<!-- 시험 선택 모달 -->
+<div class="modal-overlay" id="examModal">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">시험정보 선택</div>
+            <button type="button" class="modal-close" id="closeExamModal" aria-label="닫기">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="table-container">
+                <table>
+                    <thead>
+                    <tr>
+                        <th style="width: 60px;">순번</th>
+                        <th style="width: 100px;">시험ID</th>
+                        <th>시험명</th>
+                        <th style="width: 120px;">시험일자</th>
+                        <th style="width: 100px;">시행종목수</th>
+                    </tr>
+                    </thead>
+                    <tbody id="examInfoTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-message">지사를 선택하면 시험 목록이 표시됩니다.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="cancelExamModal">닫기</button>
+            <button type="button" class="btn btn-save" id="confirmExamModal">선택 완료</button>
+        </div>
+    </div>
+</div>
+
+<!-- 토스트 -->
+<div id="toast" class="toast" role="alert" aria-live="polite"></div>
+
+<script src="js/main.js"></script>
+</body>
+</html>

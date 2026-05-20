@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.nqis.qis.exam.dao.ExamItemDAO">
+
+    <resultMap id="examItemResultMap" type="kr.or.nqis.qis.exam.dto.response.ExamItemResponse">
+        <result column="ITEM_CODE"        property="itemCode"/>
+        <result column="ITEM_NAME"        property="itemName"/>
+        <result column="SELECT_FIELD"     property="selectField"/>
+        <result column="SELECT_FIELD_NAME" property="selectFieldName"/>
+        <result column="WORK_TYPE"        property="workType"/>
+        <result column="PART"             property="part"/>
+        <result column="EXPOSE_YN"        property="exposeYn"/>
+    </resultMap>
+
+    <!-- 공통 FROM/WHERE 조각 -->
+    <sql id="examItemBaseFromWhere">
+        FROM EXAM_ITEM ei
+        INNER JOIN ITEM_CODE ic
+                ON ei.ITEM_CODE = ic.ITEM_CODE
+               AND ic.USE_YN = 'Y'
+        LEFT JOIN SELECT_FIELD sf
+                ON ei.ITEM_CODE   = sf.ITEM_CODE
+               AND ei.SELECT_FIELD = sf.SELECT_FIELD
+               AND sf.USE_YN = 'Y'
+        WHERE ei.EXAM_ID     = #{examId}
+          AND ei.BRANCH_CODE = #{branchCode}
+          AND TO_CHAR(ei.EXAM_DATE, 'YYYYMMDD') = #{examDate}
+    </sql>
+
+    <!-- API-03: 시행종목 목록 조회 (페이징) -->
+    <select id="selectExamItemList"
+            parameterType="kr.or.nqis.qis.exam.vo.ExamItemSearchVO"
+            resultMap="examItemResultMap">
+        SELECT
+            ITEM_CODE,
+            ITEM_NAME,
+            SELECT_FIELD,
+            SELECT_FIELD_NAME,
+            WORK_TYPE,
+            PART,
+            EXPOSE_YN
+        FROM (
+            SELECT
+                ic.ITEM_CODE,
+                ic.ITEM_NAME,
+                ei.SELECT_FIELD,
+                sf.SELECT_FIELD_NAME,
+                ei.WORK_TYPE,
+                ei.PART,
+                ei.EXPOSE_YN,
+                ROW_NUMBER() OVER (
+                    ORDER BY ic.ITEM_CODE ASC, ei.PART ASC
+                ) AS RN
+            <include refid="examItemBaseFromWhere"/>
+        ) base
+        WHERE base.RN BETWEEN #{rowStart} AND #{rowEnd}
+        ORDER BY base.RN ASC
+    </select>
+
+    <!-- API-04: 엑셀용 전체 목록 -->
+    <select id="selectExamItemListAll"
+            parameterType="kr.or.nqis.qis.exam.vo.ExamItemSearchVO"
+            resultMap="examItemResultMap">
+        SELECT
+            ic.ITEM_CODE,
+            ic.ITEM_NAME,
+            ei.SELECT_FIELD,
+            sf.SELECT_FIELD_NAME,
+            ei.WORK_TYPE,
+            ei.PART,
+            ei.EXPOSE_YN
+        <include refid="examItemBaseFromWhere"/>
+        ORDER BY ic.ITEM_CODE ASC, ei.PART ASC
+    </select>
+
+    <!-- 시행종목 전체 건수 -->
+    <select id="selectExamItemListTotlCnt"
+            parameterType="kr.or.nqis.qis.exam.vo.ExamItemSearchVO"
+            resultType="int">
+        SELECT COUNT(1)
+        <include refid="examItemBaseFromWhere"/>
+    </select>
+
+</mapper>
