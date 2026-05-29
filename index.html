@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>생활기록 통합관리</title>
+<style>
+  :root {
+    --navy: #2f3b66;
+    --navy-dark: #232c4d;
+    --blue: #4a5a9e;
+    --head: #3b477a;
+    --green: #2e7d4f;
+    --green-light: #e6f2ea;
+    --row-alt: #fbf7ef;
+    --row-pink: #fdeef0;
+    --border: #d8dce8;
+    --text: #222;
+    --muted: #6b7180;
+    --expense: #c0392b;
+    --income: #1769aa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Malgun Gothic", "맑은 고딕", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    background: #eef0f5;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 18px 18px 60px; }
+
+  /* Header */
+  header.app {
+    background: linear-gradient(180deg, var(--navy) 0%, var(--navy-dark) 100%);
+    color: #fff;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+  }
+  header.app h1 { margin: 0; font-size: 22px; letter-spacing: 1px; }
+  header.app p { margin: 6px 0 0; font-size: 12px; color: #c7cde6; }
+
+  .panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  }
+  .panel h2 { margin: 0 0 10px; font-size: 15px; color: var(--navy); }
+
+  /* Summary layout */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: minmax(360px, 460px) 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 900px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  table { border-collapse: collapse; width: 100%; }
+  .sum-table th, .sum-table td {
+    border: 1px solid var(--border);
+    padding: 7px 10px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .sum-table th { background: var(--head); color: #fff; text-align: center; font-weight: 600; }
+  .sum-table td.cat { text-align: left; font-weight: 600; }
+  .sum-table tr:nth-child(even) td { background: var(--green-light); }
+  .sum-table tr.total td { background: var(--navy); color: #fff; font-weight: 700; }
+  .net {
+    margin-top: 12px; font-size: 15px; display: flex; align-items: baseline; gap: 10px;
+  }
+  .net .label { color: var(--muted); font-size: 13px; }
+  .net .val { font-size: 20px; font-weight: 700; }
+  .net .val.neg { color: var(--expense); }
+  .net .val.pos { color: var(--income); }
+
+  .charts { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .chart-box { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+  .chart-box h3 { margin: 2px 0 6px; font-size: 13px; color: var(--navy); }
+  canvas { width: 100%; display: block; }
+
+  /* Toolbar */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .toolbar .spacer { flex: 1 1 auto; }
+  input[type="text"], input[type="search"], select, input[type="date"], input[type="number"] {
+    padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+    font-family: inherit; background: #fff;
+  }
+  button {
+    padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-family: inherit; font-weight: 600;
+  }
+  .btn-primary { background: var(--navy); color: #fff; }
+  .btn-primary:hover { background: var(--navy-dark); }
+  .btn-ghost { background: #eef0f7; color: var(--navy); }
+  .btn-ghost:hover { background: #e0e4f0; }
+  .btn-danger { background: #fff; color: var(--expense); border: 1px solid #e6b3ac; }
+  .btn-danger:hover { background: var(--row-pink); }
+  .btn-sm { padding: 4px 9px; font-size: 12px; }
+
+  /* Detail table */
+  .table-scroll { overflow-x: auto; }
+  table.records { min-width: 1100px; }
+  table.records th, table.records td {
+    border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top;
+    white-space: nowrap;
+  }
+  table.records th {
+    background: var(--head); color: #fff; cursor: pointer; user-select: none;
+    position: sticky; top: 0; font-weight: 600;
+  }
+  table.records th:hover { background: var(--blue); }
+  table.records th .arrow { font-size: 10px; opacity: .8; margin-left: 3px; }
+  table.records td.amount { text-align: right; }
+  table.records tbody tr:nth-child(even) td { background: var(--row-alt); }
+  table.records tbody tr:hover td { background: #eef3ff; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+  .pill.expense { background: #fdecea; color: var(--expense); }
+  .pill.income { background: #e7f1fb; color: var(--income); }
+  .status { font-size: 12px; }
+  .status.완료 { color: var(--green); font-weight: 600; }
+  .status.사용중 { color: #b8860b; font-weight: 600; }
+  .status.임박 { color: var(--expense); font-weight: 700; }
+  .row-actions { display: flex; gap: 4px; }
+  .empty { text-align: center; color: var(--muted); padding: 26px; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0; background: rgba(20,24,40,.45);
+    display: none; align-items: flex-start; justify-content: center; z-index: 50;
+    overflow-y: auto; padding: 40px 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 12px; width: 100%; max-width: 620px;
+    padding: 20px 22px; box-shadow: 0 10px 40px rgba(0,0,0,.25);
+  }
+  .modal h2 { margin: 0 0 14px; font-size: 17px; color: var(--navy); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .field input, .field select, .field textarea { width: 100%; }
+  .field textarea { font-family: inherit; resize: vertical; min-height: 44px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 6px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: var(--navy-dark); color: #fff; padding: 10px 18px; border-radius: 8px;
+    font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app">
+    <h1>생활기록 통합관리</h1>
+    <p>병원 · 자동차 · 경조사 · 보험/구독 · 가전/보증 등 생활 지출·수입을 한 곳에서 관리합니다. 데이터는 이 브라우저에 자동 저장됩니다.</p>
+  </header>
+
+  <!-- 요약 영역 -->
+  <section class="panel">
+    <h2>분류별 집계</h2>
+    <div class="summary-grid">
+      <div>
+        <table class="sum-table">
+          <thead>
+            <tr><th style="text-align:center">분류</th><th>건수</th><th>지출(원)</th><th>수입(원)</th></tr>
+          </thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+        <div class="net">
+          <span class="label">순수입 (수입 − 지출)</span>
+          <span id="netVal" class="val">0</span>
+        </div>
+      </div>
+      <div class="charts">
+        <div class="chart-box">
+          <h3>분류별 지출</h3>
+          <canvas id="chartCat" height="220"></canvas>
+        </div>
+        <div class="chart-box">
+          <h3>월별 수입·지출 추이</h3>
+          <canvas id="chartMonth" height="220"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 기록 목록 -->
+  <section class="panel">
+    <div class="toolbar">
+      <button class="btn-primary" id="btnAdd">+ 기록 추가</button>
+      <input type="search" id="search" placeholder="검색 (세부항목·대상·장소·메모·비고)" style="min-width:240px">
+      <select id="filterCategory"><option value="">전체 분류</option></select>
+      <select id="filterType">
+        <option value="">전체 구분</option>
+        <option value="지출">지출</option>
+        <option value="수입">수입</option>
+      </select>
+      <span class="spacer"></span>
+      <button class="btn-ghost" id="btnExport">CSV 내보내기</button>
+      <button class="btn-ghost" id="btnImport">CSV 가져오기</button>
+      <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none">
+    </div>
+
+    <div class="table-scroll" style="margin-top:12px">
+      <table class="records">
+        <thead><tr id="headRow"></tr></thead>
+        <tbody id="recordsBody"></tbody>
+      </table>
+    </div>
+    <div class="hint" id="countHint"></div>
+  </section>
+</div>
+
+<!-- 입력/수정 모달 -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 id="modalTitle">기록 추가</h2>
+    <form id="recordForm">
+      <input type="hidden" id="f_id">
+      <div class="form-grid">
+        <div class="field"><label>날짜</label><input type="date" id="f_date" required></div>
+        <div class="field"><label>분류</label>
+          <select id="f_category"></select>
+        </div>
+        <div class="field"><label>세부항목</label><input type="text" id="f_item" placeholder="예: 내과, 엔진오일"></div>
+        <div class="field"><label>대상·상대</label><input type="text" id="f_target" placeholder="예: 본인, K5, 김철수"></div>
+        <div class="field"><label>기관·장소</label><input type="text" id="f_place" placeholder="예: OO카센터"></div>
+        <div class="field"><label>금액(원)</label><input type="number" id="f_amount" min="0" step="1" value="0"></div>
+        <div class="field"><label>수입/지출</label>
+          <select id="f_type"><option value="지출">지출</option><option value="수입">수입</option></select>
+        </div>
+        <div class="field"><label>상태</label>
+          <select id="f_status"></select>
+        </div>
+        <div class="field"><label>다음일정</label><input type="text" id="f_nextDate" placeholder="예: 2026-08-10, 55,000km"></div>
+        <div class="field"><label>비고</label><input type="text" id="f_note" placeholder="메모"></div>
+        <div class="field full"><label>내용·메모</label><textarea id="f_memo" placeholder="상세 내용"></textarea></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ghost" id="btnCancel">취소</button>
+        <button type="submit" class="btn-primary">저장</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "life-records-v1";
+
+  // 상세 표 열 정의 (key, 한글 라벨, 정렬 타입)
+  var COLUMNS = [
+    { key: "date",     label: "날짜",      type: "string" },
+    { key: "category", label: "분류",      type: "string" },
+    { key: "item",     label: "세부항목",  type: "string" },
+    { key: "target",   label: "대상·상대", type: "string" },
+    { key: "place",    label: "기관·장소", type: "string" },
+    { key: "memo",     label: "내용·메모", type: "string" },
+    { key: "amount",   label: "금액(원)",  type: "number" },
+    { key: "type",     label: "수입/지출", type: "string" },
+    { key: "nextDate", label: "다음일정",  type: "string" },
+    { key: "status",   label: "상태",      type: "string" },
+    { key: "note",     label: "비고",      type: "string" }
+  ];
+
+  var DEFAULT_CATEGORIES = ["병원", "자동차", "경조사", "보험/구독", "가전/보증"];
+  var DEFAULT_STATUSES = ["완료", "사용중", "임박"];
+  var CAT_COLORS = ["#4a5a9e", "#2e7d4f", "#d98c2b", "#8e44ad", "#16a085", "#c0392b", "#2c82c9", "#7f8c8d"];
+
+  var SEED = [
+    { date:"2026-01-15", category:"병원",    item:"내과",        target:"본인",            place:"서울내과의원", memo:"감기/급성 상기도염", amount:12000,   type:"지출", nextDate:"",           status:"완료",  note:"예시·3일분 처방" },
+    { date:"2026-01-20", category:"자동차",   item:"엔진오일",    target:"K5",             place:"OO카센터",   memo:"합성유 교체 (주행 45,200km)", amount:65000, type:"지출", nextDate:"55,000km", status:"완료",  note:"예시" },
+    { date:"2026-02-14", category:"경조사",   item:"결혼",        target:"김철수(직장동료)", place:"OO웨딩홀",   memo:"참석",              amount:100000,  type:"지출", nextDate:"",           status:"완료",  note:"예시" },
+    { date:"2026-02-25", category:"보험/구독", item:"실손의료보험", target:"OO생명",          place:"OO생명",     memo:"월 납입(매월 25일)",  amount:38000,   type:"지출", nextDate:"2027-01-01", status:"사용중", note:"예시" },
+    { date:"2026-03-22", category:"경조사",   item:"출산/돌",     target:"이영희(친구)",     place:"",          memo:"송금(돌잔치)",       amount:50000,   type:"지출", nextDate:"",           status:"완료",  note:"예시" },
+    { date:"2026-04-05", category:"경조사",   item:"장례",        target:"박민수(친척)",     place:"OO장례식장", memo:"조의금 받음",        amount:100000,  type:"수입", nextDate:"",           status:"완료",  note:"예시" },
+    { date:"2026-02-10", category:"가전/보증", item:"노트북",      target:"삼성",            place:"OO몰",       memo:"SN-12345 / 1년 보증", amount:1500000, type:"지출", nextDate:"2026-08-10", status:"임박",  note:"예시" }
+  ];
+
+  // ---------- 상태 ----------
+  var records = [];
+  var sortKey = "date";
+  var sortDir = 1; // 1 오름, -1 내림
+
+  // ---------- 저장/로드 ----------
+  function loadRecords() {
+    var raw;
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { raw = null; }
+    if (raw) {
+      try {
+        var data = JSON.parse(raw);
+        if (Array.isArray(data)) { records = data.map(normalize); return; }
+      } catch (e) { /* fallthrough */ }
+    }
+    records = SEED.map(function (r, i) { return normalize(r, i); });
+    saveRecords();
+  }
+  function saveRecords() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(records)); } catch (e) {}
+  }
+  function normalize(r, idx) {
+    return {
+      id: r.id || ("rec_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8) + (idx || "")),
+      date: r.date || "",
+      category: r.category || "",
+      item: r.item || "",
+      target: r.target || "",
+      place: r.place || "",
+      memo: r.memo || "",
+      amount: Number(r.amount) || 0,
+      type: r.type === "수입" ? "수입" : "지출",
+      nextDate: r.nextDate || "",
+      status: r.status || "",
+      note: r.note || ""
+    };
+  }
+
+  // ---------- 유틸 ----------
+  function fmt(n) { return (Number(n) || 0).toLocaleString("ko-KR"); }
+  function esc(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function uniqueCategories() {
+    var set = {};
+    DEFAULT_CATEGORIES.forEach(function (c) { set[c] = true; });
+    records.forEach(function (r) { if (r.category) set[r.category] = true; });
+    return Object.keys(set);
+  }
+  function uniqueStatuses() {
+    var set = {};
+    DEFAULT_STATUSES.forEach(function (s) { set[s] = true; });
+    records.forEach(function (r) { if (r.status) set[r.status] = true; });
+    return Object.keys(set);
+  }
+  function catColor(cat) {
+    var cats = uniqueCategories();
+    var i = cats.indexOf(cat);
+    return CAT_COLORS[(i < 0 ? 0 : i) % CAT_COLORS.length];
+  }
+
+  // ---------- 필터링/정렬 ----------
+  function getFilteredSorted() {
+    var q = document.getElementById("search").value.trim().toLowerCase();
+    var fc = document.getElementById("filterCategory").value;
+    var ft = document.getElementById("filterType").value;
+
+    var rows = records.filter(function (r) {
+      if (fc && r.category !== fc) return false;
+      if (ft && r.type !== ft) return false;
+      if (q) {
+        var hay = [r.item, r.target, r.place, r.memo, r.note, r.category].join(" ").toLowerCase();
+        if (hay.indexOf(q) === -1) return false;
+      }
+      return true;
+    });
+
+    var col = COLUMNS.filter(function (c) { return c.key === sortKey; })[0] || COLUMNS[0];
+    rows.sort(function (a, b) {
+      var va = a[sortKey], vb = b[sortKey];
+      if (col.type === "number") { va = Number(va) || 0; vb = Number(vb) || 0; return (va - vb) * sortDir; }
+      return String(va).localeCompare(String(vb), "ko") * sortDir;
+    });
+    return rows;
+  }
+
+  // ---------- 렌더: 헤더 ----------
+  function renderHead() {
+    var tr = document.getElementById("headRow");
+    var html = COLUMNS.map(function (c) {
+      var arrow = c.key === sortKey ? '<span class="arrow">' + (sortDir === 1 ? "▲" : "▼") + "</span>" : "";
+      return '<th data-key="' + c.key + '">' + esc(c.label) + arrow + "</th>";
+    }).join("");
+    html += "<th>관리</th>";
+    tr.innerHTML = html;
+    Array.prototype.forEach.call(tr.querySelectorAll("th[data-key]"), function (th) {
+      th.addEventListener("click", function () {
+        var k = th.getAttribute("data-key");
+        if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = 1; }
+        renderHead(); renderTable();
+      });
+    });
+  }
+
+  // ---------- 렌더: 상세 표 ----------
+  function renderTable() {
+    var tbody = document.getElementById("recordsBody");
+    var rows = getFilteredSorted();
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td class="empty" colspan="' + (COLUMNS.length + 1) + '">표시할 기록이 없습니다. [+ 기록 추가]로 입력하세요.</td></tr>';
+    } else {
+      tbody.innerHTML = rows.map(function (r) {
+        var cells = COLUMNS.map(function (c) {
+          if (c.key === "amount") return '<td class="amount">' + fmt(r.amount) + "</td>";
+          if (c.key === "type") {
+            var cls = r.type === "수입" ? "income" : "expense";
+            return '<td><span class="pill ' + cls + '">' + esc(r.type) + "</span></td>";
+          }
+          if (c.key === "status") return '<td><span class="status ' + esc(r.status) + '">' + esc(r.status) + "</span></td>";
+          return "<td>" + esc(r[c.key]) + "</td>";
+        }).join("");
+        cells += '<td><div class="row-actions">' +
+          '<button class="btn-ghost btn-sm" data-edit="' + r.id + '">수정</button>' +
+          '<button class="btn-danger btn-sm" data-del="' + r.id + '">삭제</button></div></td>';
+        return "<tr>" + cells + "</tr>";
+      }).join("");
+    }
+    document.getElementById("countHint").textContent =
+      "표시 " + rows.length + "건 / 전체 " + records.length + "건";
+
+    Array.prototype.forEach.call(tbody.querySelectorAll("[data-edit]"), function (b) {
+      b.addEventListener("click", function () { openForm(b.getAttribute("data-edit")); });
+    });
+    Array.prototype.forEach.call(tbody.querySelectorAll("[data-del]"), function (b) {
+      b.addEventListener("click", function () { deleteRecord(b.getAttribute("data-del")); });
+    });
+  }
+
+  // ---------- 렌더: 요약 ----------
+  function computeSummary() {
+    var map = {};
+    uniqueCategories().forEach(function (c) { map[c] = { cat: c, count: 0, expense: 0, income: 0 }; });
+    records.forEach(function (r) {
+      var cat = r.category || "(미분류)";
+      if (!map[cat]) map[cat] = { cat: cat, count: 0, expense: 0, income: 0 };
+      map[cat].count++;
+      if (r.type === "수입") map[cat].income += r.amount; else map[cat].expense += r.amount;
+    });
+    var arr = Object.keys(map).map(function (k) { return map[k]; })
+      .filter(function (m) { return m.count > 0; });
+    arr.sort(function (a, b) { return b.expense - a.expense; });
+    return arr;
+  }
+
+  function renderSummary() {
+    var arr = computeSummary();
+    var tCount = 0, tExp = 0, tInc = 0;
+    var body = arr.map(function (m) {
+      tCount += m.count; tExp += m.expense; tInc += m.income;
+      return "<tr><td class='cat'>" + esc(m.cat) + "</td><td>" + m.count +
+        "</td><td>" + fmt(m.expense) + "</td><td>" + fmt(m.income) + "</td></tr>";
+    }).join("");
+    body += "<tr class='total'><td class='cat'>합계</td><td>" + tCount +
+      "</td><td>" + fmt(tExp) + "</td><td>" + fmt(tInc) + "</td></tr>";
+    document.getElementById("summaryBody").innerHTML = body;
+
+    var net = tInc - tExp;
+    var el = document.getElementById("netVal");
+    el.textContent = (net < 0 ? "-" : "") + fmt(Math.abs(net)) + " 원";
+    el.className = "val " + (net < 0 ? "neg" : "pos");
+  }
+
+  // ---------- 렌더: 차트 (Canvas, 의존성 없음) ----------
+  function setupCanvas(canvas) {
+    var ratio = window.devicePixelRatio || 1;
+    var cssW = canvas.clientWidth || canvas.parentNode.clientWidth || 400;
+    var cssH = parseInt(canvas.getAttribute("height"), 10) || 220;
+    canvas.width = cssW * ratio;
+    canvas.height = cssH * ratio;
+    canvas.style.height = cssH + "px";
+    var ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+    return { ctx: ctx, w: cssW, h: cssH };
+  }
+
+  function renderCharts() {
+    drawCategoryChart();
+    drawMonthChart();
+  }
+
+  function drawCategoryChart() {
+    var canvas = document.getElementById("chartCat");
+    var s = setupCanvas(canvas);
+    var ctx = s.ctx, W = s.w, H = s.h;
+    var data = computeSummary().filter(function (m) { return m.expense > 0; });
+    ctx.font = "12px sans-serif"; ctx.textBaseline = "middle";
+    if (data.length === 0) { drawEmpty(ctx, W, H); return; }
+
+    var padL = 80, padR = 60, padT = 10, padB = 10;
+    var max = Math.max.apply(null, data.map(function (d) { return d.expense; }));
+    var barH = Math.min(28, (H - padT - padB) / data.length - 8);
+    var gap = (H - padT - padB) / data.length;
+
+    data.forEach(function (d, i) {
+      var y = padT + gap * i + (gap - barH) / 2;
+      var w = (W - padL - padR) * (d.expense / max);
+      ctx.fillStyle = catColor(d.cat);
+      ctx.fillRect(padL, y, Math.max(2, w), barH);
+      ctx.fillStyle = "#333"; ctx.textAlign = "right";
+      ctx.fillText(d.cat, padL - 8, y + barH / 2);
+      ctx.textAlign = "left";
+      ctx.fillText(fmt(d.expense), padL + Math.max(2, w) + 6, y + barH / 2);
+    });
+  }
+
+  function drawMonthChart() {
+    var canvas = document.getElementById("chartMonth");
+    var s = setupCanvas(canvas);
+    var ctx = s.ctx, W = s.w, H = s.h;
+
+    var months = {};
+    records.forEach(function (r) {
+      var m = (r.date || "").slice(0, 7);
+      if (!/^\d{4}-\d{2}$/.test(m)) return;
+      if (!months[m]) months[m] = { exp: 0, inc: 0 };
+      if (r.type === "수입") months[m].inc += r.amount; else months[m].exp += r.amount;
+    });
+    var keys = Object.keys(months).sort();
+    ctx.font = "11px sans-serif";
+    if (keys.length === 0) { drawEmpty(ctx, W, H); return; }
+
+    var padL = 10, padR = 10, padT = 24, padB = 22;
+    var max = 1;
+    keys.forEach(function (k) { max = Math.max(max, months[k].exp, months[k].inc); });
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var groupW = plotW / keys.length;
+    var barW = Math.min(18, groupW / 2 - 3);
+
+    // baseline
+    ctx.strokeStyle = "#ccc"; ctx.beginPath();
+    ctx.moveTo(padL, padT + plotH); ctx.lineTo(W - padR, padT + plotH); ctx.stroke();
+
+    keys.forEach(function (k, i) {
+      var cx = padL + groupW * i + groupW / 2;
+      var e = months[k].exp, inc = months[k].inc;
+      var eh = plotH * (e / max), ih = plotH * (inc / max);
+      // 지출 (왼쪽, 빨강)
+      ctx.fillStyle = "#c0392b";
+      ctx.fillRect(cx - barW - 1, padT + plotH - eh, barW, eh);
+      // 수입 (오른쪽, 파랑)
+      ctx.fillStyle = "#1769aa";
+      ctx.fillRect(cx + 1, padT + plotH - ih, barW, ih);
+      // 월 라벨
+      ctx.fillStyle = "#555"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+      ctx.fillText(k.slice(2), cx, padT + plotH + 5);
+    });
+
+    // 범례
+    ctx.textBaseline = "middle"; ctx.textAlign = "left";
+    ctx.fillStyle = "#c0392b"; ctx.fillRect(padL, 6, 11, 11);
+    ctx.fillStyle = "#333"; ctx.fillText("지출", padL + 15, 12);
+    ctx.fillStyle = "#1769aa"; ctx.fillRect(padL + 60, 6, 11, 11);
+    ctx.fillStyle = "#333"; ctx.fillText("수입", padL + 75, 12);
+  }
+
+  function drawEmpty(ctx, W, H) {
+    ctx.fillStyle = "#aaa"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("데이터 없음", W / 2, H / 2);
+  }
+
+  // ---------- 셀렉트 옵션 채우기 ----------
+  function refreshSelects() {
+    var cats = uniqueCategories();
+    var fc = document.getElementById("filterCategory");
+    var keep = fc.value;
+    fc.innerHTML = '<option value="">전체 분류</option>' +
+      cats.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + "</option>"; }).join("");
+    fc.value = keep;
+  }
+
+  // ---------- 모달 폼 ----------
+  function fillFormSelects() {
+    document.getElementById("f_category").innerHTML =
+      uniqueCategories().map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + "</option>"; }).join("");
+    document.getElementById("f_status").innerHTML =
+      '<option value="">(없음)</option>' +
+      uniqueStatuses().map(function (s) { return '<option value="' + esc(s) + '">' + esc(s) + "</option>"; }).join("");
+  }
+
+  function openForm(id) {
+    fillFormSelects();
+    var r = id ? records.filter(function (x) { return x.id === id; })[0] : null;
+    document.getElementById("modalTitle").textContent = r ? "기록 수정" : "기록 추가";
+    document.getElementById("f_id").value = r ? r.id : "";
+    document.getElementById("f_date").value = r ? r.date : new Date().toISOString().slice(0, 10);
+    document.getElementById("f_category").value = r ? r.category : (uniqueCategories()[0] || "");
+    document.getElementById("f_item").value = r ? r.item : "";
+    document.getElementById("f_target").value = r ? r.target : "";
+    document.getElementById("f_place").value = r ? r.place : "";
+    document.getElementById("f_amount").value = r ? r.amount : 0;
+    document.getElementById("f_type").value = r ? r.type : "지출";
+    document.getElementById("f_status").value = r ? r.status : "완료";
+    document.getElementById("f_nextDate").value = r ? r.nextDate : "";
+    document.getElementById("f_note").value = r ? r.note : "";
+    document.getElementById("f_memo").value = r ? r.memo : "";
+    document.getElementById("modalBg").classList.add("open");
+  }
+  function closeForm() { document.getElementById("modalBg").classList.remove("open"); }
+
+  function submitForm(e) {
+    e.preventDefault();
+    var id = document.getElementById("f_id").value;
+    var rec = normalize({
+      id: id || undefined,
+      date: document.getElementById("f_date").value,
+      category: document.getElementById("f_category").value,
+      item: document.getElementById("f_item").value,
+      target: document.getElementById("f_target").value,
+      place: document.getElementById("f_place").value,
+      memo: document.getElementById("f_memo").value,
+      amount: document.getElementById("f_amount").value,
+      type: document.getElementById("f_type").value,
+      nextDate: document.getElementById("f_nextDate").value,
+      status: document.getElementById("f_status").value,
+      note: document.getElementById("f_note").value
+    });
+    if (id) {
+      records = records.map(function (x) { return x.id === id ? rec : x; });
+      toast("수정되었습니다.");
+    } else {
+      records.push(rec);
+      toast("추가되었습니다.");
+    }
+    saveRecords(); closeForm(); renderAll();
+  }
+
+  function deleteRecord(id) {
+    var r = records.filter(function (x) { return x.id === id; })[0];
+    if (!r) return;
+    if (!window.confirm("이 기록을 삭제할까요?\n" + r.date + " / " + r.category + " / " + r.item)) return;
+    records = records.filter(function (x) { return x.id !== id; });
+    saveRecords(); renderAll(); toast("삭제되었습니다.");
+  }
+
+  // ---------- CSV ----------
+  var CSV_HEADERS = COLUMNS.map(function (c) { return c.label; });
+  function csvCell(v) {
+    var s = String(v == null ? "" : v);
+    if (/[",\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function exportCSV() {
+    var lines = [CSV_HEADERS.join(",")];
+    getFilteredSorted().forEach(function (r) {
+      lines.push(COLUMNS.map(function (c) { return csvCell(r[c.key]); }).join(","));
+    });
+    var BOM = "﻿";
+    var blob = new Blob([BOM + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "생활기록_" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("CSV로 내보냈습니다.");
+  }
+
+  // 간단한 CSV 파서 (따옴표/줄바꿈/이스케이프 지원)
+  function parseCSV(text) {
+    text = text.replace(/^﻿/, "");
+    var rows = [], row = [], field = "", i = 0, inQ = false;
+    while (i < text.length) {
+      var ch = text[i];
+      if (inQ) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQ = true; i++; continue; }
+      if (ch === ",") { row.push(field); field = ""; i++; continue; }
+      if (ch === "\r") { i++; continue; }
+      if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+      field += ch; i++;
+    }
+    if (field !== "" || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function (r) { return r.length > 1 || (r.length === 1 && r[0].trim() !== ""); });
+  }
+
+  function importCSV(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var rows = parseCSV(String(reader.result));
+        if (rows.length < 2) { toast("가져올 데이터가 없습니다."); return; }
+        var header = rows[0].map(function (h) { return h.trim(); });
+        // 라벨 → key 매핑
+        var idx = {};
+        COLUMNS.forEach(function (c) {
+          var p = header.indexOf(c.label);
+          if (p === -1) p = header.indexOf(c.key);
+          idx[c.key] = p;
+        });
+        var imported = [];
+        for (var r = 1; r < rows.length; r++) {
+          var cells = rows[r];
+          var obj = {};
+          COLUMNS.forEach(function (c) {
+            obj[c.key] = idx[c.key] >= 0 ? (cells[idx[c.key]] || "") : "";
+          });
+          if (!obj.date && !obj.category && !obj.item && !obj.amount) continue;
+          imported.push(normalize(obj));
+        }
+        if (imported.length === 0) { toast("유효한 행이 없습니다."); return; }
+        var replace = window.confirm(
+          imported.length + "건을 가져옵니다.\n\n[확인] = 기존 데이터를 모두 대체\n[취소] = 기존 데이터에 추가");
+        if (replace) records = imported; else records = records.concat(imported);
+        saveRecords(); renderAll();
+        toast(imported.length + "건을 가져왔습니다.");
+      } catch (e) {
+        toast("CSV 파싱 오류: " + e.message);
+      }
+    };
+    reader.readAsText(file, "utf-8");
+  }
+
+  // ---------- 토스트 ----------
+  var toastTimer;
+  function toast(msg) {
+    var t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+
+  // ---------- 전체 렌더 ----------
+  function renderAll() {
+    refreshSelects();
+    renderSummary();
+    renderTable();
+    renderCharts();
+  }
+
+  // ---------- 이벤트 바인딩 ----------
+  function bind() {
+    document.getElementById("btnAdd").addEventListener("click", function () { openForm(null); });
+    document.getElementById("btnCancel").addEventListener("click", closeForm);
+    document.getElementById("recordForm").addEventListener("submit", submitForm);
+    document.getElementById("modalBg").addEventListener("click", function (e) {
+      if (e.target === this) closeForm();
+    });
+    document.getElementById("search").addEventListener("input", renderTable);
+    document.getElementById("filterCategory").addEventListener("change", renderTable);
+    document.getElementById("filterType").addEventListener("change", renderTable);
+    document.getElementById("btnExport").addEventListener("click", exportCSV);
+    document.getElementById("btnImport").addEventListener("click", function () {
+      document.getElementById("fileInput").click();
+    });
+    document.getElementById("fileInput").addEventListener("change", function (e) {
+      if (e.target.files && e.target.files[0]) importCSV(e.target.files[0]);
+      e.target.value = "";
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeForm();
+    });
+    window.addEventListener("resize", function () {
+      clearTimeout(window.__chartTimer);
+      window.__chartTimer = setTimeout(renderCharts, 150);
+    });
+  }
+
+  // ---------- 초기화 ----------
+  loadRecords();
+  renderHead();
+  bind();
+  renderAll();
+})();
+</script>
+</body>
+</html>
