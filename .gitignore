@@ -8,3 +8,6 @@ __history
 *.exe
 *.dll
 bin/*
+
+# 배포 묶음 빌드 산출물 (tools/make_bundle.sh 결과)
+dist/

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>표준 절차서 포털</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="inner">
+      <div>
+        <h1 data-site-title>표준 절차서 포털</h1>
+        <div class="sub" data-site-sub></div>
+      </div>
+      <span class="org" data-org></span>
+    </div>
+    <nav class="nav">
+      <a href="index.html" class="active">공정도 홈</a>
+      <a href="list.html">전체 목록</a>
+    </nav>
+  </header>
+
+  <main>
+    <form id="search-form" class="search-bar" role="search">
+      <input id="search-input" type="search"
+             placeholder="절차서명 · 문서번호 · 키워드로 검색 (예: 입고검사, 토크, QC)" />
+      <button class="btn" type="submit">검색</button>
+    </form>
+
+    <div class="section-title">공정도 — 단계를 클릭하면 해당 공정의 절차서로 이동합니다</div>
+    <div id="flow" class="flow"></div>
+
+    <div class="section-title">공정별 절차서</div>
+    <div id="step-cards" class="cards"></div>
+  </main>
+
+  <footer>오프라인 열람용 정적 포털 · 인터넷 연결 없이 브라우저에서 동작합니다.</footer>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/app.js"></script>
+  <script>App.init("index");</script>
+</body>
+</html>
