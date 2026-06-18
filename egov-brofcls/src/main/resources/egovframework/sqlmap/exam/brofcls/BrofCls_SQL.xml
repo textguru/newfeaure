@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    지사별 시행종목 조회 Mapper.
+    namespace: BrofCls
+    DBMS: MariaDB / MySQL 호환 (LIMIT 사용).
+          Oracle 등 타 DBMS 사용 시 페이징 구문 분리 필요.
+-->
+<mapper namespace="BrofCls">
+
+    <!-- ============================================================ -->
+    <!-- ResultMap 정의                                                 -->
+    <!-- ============================================================ -->
+    <resultMap id="brofResultMap" type="egovframework.exam.brofcls.service.BrofVO">
+        <result property="brofCd" column="BROF_CD"/>
+        <result property="brofNm" column="BROF_NM"/>
+    </resultMap>
+
+    <resultMap id="testInfoResultMap" type="egovframework.exam.brofcls.service.TestInfoVO">
+        <result property="testNo"   column="TEST_NO"/>
+        <result property="testNm"   column="TEST_NM"/>
+        <result property="testYmd"  column="TEST_YMD"/>
+        <result property="clsCount" column="CLS_COUNT"/>
+    </resultMap>
+
+    <resultMap id="brofClsResultMap" type="egovframework.exam.brofcls.service.BrofClsVO">
+        <result property="clsNo"          column="CLS_NO"/>
+        <result property="clsNm"          column="CLS_NM"/>
+        <result property="fldCd"          column="FLD_CD"/>
+        <result property="fldNm"          column="FLD_NM"/>
+        <result property="jobSeNm"        column="JOB_SE_NM"/>
+        <result property="testPtNo"       column="TEST_PT_NO"/>
+        <result property="testSchdRlsYn"  column="TEST_SCHD_RLS_YN"/>
+    </resultMap>
+
+    <!-- ============================================================ -->
+    <!-- API-001: 지사 목록                                              -->
+    <!-- ============================================================ -->
+    <select id="selectBrofList" resultMap="brofResultMap">
+        SELECT BROF_CD
+             , BROF_NM
+          FROM TB_BROF
+         WHERE USE_YN = 'Y'
+         ORDER BY BROF_NM ASC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- API-002: 지사별 시험정보 목록                                    -->
+    <!--   - TB_BROF_TEST 매핑으로 지사 필터링                            -->
+    <!--   - TB_TEST_CLS 집계로 시행종목 수 산출                          -->
+    <!-- ============================================================ -->
+    <select id="selectTestInfoListByBrof" parameterType="string" resultMap="testInfoResultMap">
+        SELECT T.TEST_NO
+             , T.TEST_NM
+             , T.TEST_YMD
+             , (SELECT COUNT(1)
+                  FROM TB_TEST_CLS TC
+                 WHERE TC.BROF_CD = BT.BROF_CD
+                   AND TC.TEST_NO = T.TEST_NO) AS CLS_COUNT
+          FROM TB_BROF_TEST BT
+          INNER JOIN TB_TEST T
+                  ON T.TEST_NO = BT.TEST_NO
+                 AND T.USE_YN  = 'Y'
+         WHERE BT.BROF_CD = #{brofCd}
+         ORDER BY T.TEST_YMD DESC, T.TEST_NO ASC
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- API-003: 시행종목 목록 - 전체건수                                -->
+    <!-- ============================================================ -->
+    <select id="selectBrofClsListTotalCount"
+            parameterType="egovframework.exam.brofcls.service.BrofClsSearchVO"
+            resultType="int">
+        SELECT COUNT(1)
+          FROM TB_TEST_CLS TC
+          INNER JOIN TB_TEST T
+                  ON T.TEST_NO = TC.TEST_NO
+         WHERE TC.BROF_CD  = #{brofCd}
+           AND TC.TEST_NO  = #{testNo}
+           AND T.TEST_YMD  = #{testYmd}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- API-003: 시행종목 목록 - 페이징                                  -->
+    <!--   - 정렬: 종목코드 ASC, 부 ASC (REQ-003 규칙6)                  -->
+    <!--   - 작업구분코드 → 한글 매핑 (1:필기 / 2:실기)                   -->
+    <!-- ============================================================ -->
+    <select id="selectBrofClsList"
+            parameterType="egovframework.exam.brofcls.service.BrofClsSearchVO"
+            resultMap="brofClsResultMap">
+        SELECT TC.CLS_NO
+             , C.CLS_NM
+             , TC.FLD_CD
+             , F.FLD_NM
+             , CASE TC.JOB_SE_CD
+                   WHEN '1' THEN '필기'
+                   WHEN '2' THEN '실기'
+                   ELSE TC.JOB_SE_CD
+               END AS JOB_SE_NM
+             , TC.TEST_PT_NO
+             , TC.TEST_SCHD_RLS_YN
+          FROM TB_TEST_CLS TC
+          INNER JOIN TB_TEST T
+                  ON T.TEST_NO = TC.TEST_NO
+          INNER JOIN TB_CLS  C
+                  ON C.CLS_NO = TC.CLS_NO
+          LEFT  JOIN TB_FLD  F
+                  ON F.FLD_CD = TC.FLD_CD
+         WHERE TC.BROF_CD = #{brofCd}
+           AND TC.TEST_NO = #{testNo}
+           AND T.TEST_YMD = #{testYmd}
+         ORDER BY TC.CLS_NO ASC, TC.TEST_PT_NO ASC
+         LIMIT #{firstIndex}, #{pageSize}
+    </select>
+
+    <!-- ============================================================ -->
+    <!-- API-004: 엑셀용 전체 목록 (페이징 없음)                          -->
+    <!-- ============================================================ -->
+    <select id="selectBrofClsListForExcel"
+            parameterType="egovframework.exam.brofcls.service.BrofClsSearchVO"
+            resultMap="brofClsResultMap">
+        SELECT TC.CLS_NO
+             , C.CLS_NM
+             , TC.FLD_CD
+             , F.FLD_NM
+             , CASE TC.JOB_SE_CD
+                   WHEN '1' THEN '필기'
+                   WHEN '2' THEN '실기'
+                   ELSE TC.JOB_SE_CD
+               END AS JOB_SE_NM
+             , TC.TEST_PT_NO
+             , TC.TEST_SCHD_RLS_YN
+          FROM TB_TEST_CLS TC
+          INNER JOIN TB_TEST T
+                  ON T.TEST_NO = TC.TEST_NO
+          INNER JOIN TB_CLS  C
+                  ON C.CLS_NO = TC.CLS_NO
+          LEFT  JOIN TB_FLD  F
+                  ON F.FLD_CD = TC.FLD_CD
+         WHERE TC.BROF_CD = #{brofCd}
+           AND TC.TEST_NO = #{testNo}
+           AND T.TEST_YMD = #{testYmd}
+         ORDER BY TC.CLS_NO ASC, TC.TEST_PT_NO ASC
+    </select>
+
+</mapper>
