@@ -597,35 +597,8 @@ const STEPS = [
 ];
 
 const OWNERS = ['지원팀','경영층','공동','프로젝트팀','PM','기타'];
-const STORAGE_KEY = 'aidd_dashboard_v1';
-
 // ── State ─────────────────────────────────────────────────────────
-let state; // loaded from storage or default
-
-function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      // Merge saved state into default (in case new rows were added)
-      STEPS.forEach(step => {
-        const savedStep = parsed.find(s => s.id === step.id);
-        if (savedStep) {
-          step.rows.forEach((row, ri) => {
-            const savedRow = savedStep.rows[ri];
-            if (savedRow) {
-              row.done  = savedRow.done  ?? row.done;
-              row.note  = savedRow.note  ?? row.note;
-              row.date  = savedRow.date  ?? row.date;
-              row.owner = savedRow.owner ?? row.owner;
-            }
-          });
-        }
-      });
-    }
-  } catch(e) { console.warn('State load failed', e); }
-  state = STEPS;
-}
+function loadState() { /* data is already embedded in STEPS */ }
 
 // ── Render ────────────────────────────────────────────────────────
 function renderAll() {
@@ -758,21 +731,51 @@ function clearFilter() {
   });
 }
 
-// ── Save / Reset ──────────────────────────────────────────────────
+// ── Save: embed current data into HTML and download ───────────────
 function saveData() {
-  const snapshot = STEPS.map(step => ({
-    id: step.id,
-    rows: step.rows.map(r => ({ done: r.done, note: r.note, date: r.date, owner: r.owner }))
-  }));
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  // Serialize current STEPS state as a JSON literal to embed in the file
+  const dataSnapshot = JSON.stringify(
+    STEPS.map(step => ({
+      id: step.id,
+      rows: step.rows.map(r => ({
+        no: r.no, item: r.item, desc: r.desc,
+        date: r.date, owner: r.owner, done: r.done, note: r.note
+      }))
+    })),
+    null, 2
+  );
+
+  // Grab the full HTML source and replace the STEPS initializer block
+  let html = document.documentElement.outerHTML;
+
+  // Replace the STEPS const block with the current state
+  html = html.replace(
+    /const STEPS = \[[\s\S]*?\];\n\nconst OWNERS/,
+    `const STEPS = ${dataSnapshot};\n\nconst OWNERS`
+  );
+
+  // Remove the loadState() call so the embedded data is used directly
+  html = html.replace(
+    /function loadState\(\) \{[\s\S]*?\}\n\nconst OWNERS/,
+    `function loadState() { /* data embedded */ }\n\nconst OWNERS`
+  );
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const ts   = new Date().toISOString().slice(0,10);
+  a.href     = url;
+  a.download = `AIDD_준비점검표_${ts}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+
   const now = new Date().toLocaleString('ko-KR');
-  document.getElementById('lastSaved').textContent = `마지막 저장: ${now}`;
-  showToast('저장되었습니다 ✓');
+  document.getElementById('lastSaved').textContent = `마지막 다운로드: ${now}`;
+  showToast('HTML 파일로 저장되었습니다 ✓');
 }
 
 function resetAll() {
   if (!confirm('모든 변경사항(완료여부, 비고 등)을 초기화하시겠습니까?')) return;
-  localStorage.removeItem(STORAGE_KEY);
   location.reload();
 }
 
@@ -791,13 +794,6 @@ document.addEventListener('keydown', e => {
 // ── Init ──────────────────────────────────────────────────────────
 loadState();
 renderAll();
-
-// show last saved time if exists
-const saved = localStorage.getItem(STORAGE_KEY);
-if (saved) {
-  const meta = localStorage.getItem(STORAGE_KEY + '_ts');
-  // we store ts separately for display
-}
 </script>
 </body>
 </html>
