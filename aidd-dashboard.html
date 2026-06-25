@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIDD 프로젝트 시범적용 준비사항 점검표</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+    background: #f0f2f5;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    padding: 28px 40px 24px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(0,0,0,.35);
+  }
+  .header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -.3px; }
+  .header .sub { font-size: .8rem; color: #a8b4c8; margin-top: 4px; }
+
+  /* ── Overall progress ── */
+  .overall {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 18px;
+    flex-wrap: wrap;
+  }
+  .overall-label { font-size: .85rem; color: #c8d4e8; white-space: nowrap; }
+  .progress-bar-wrap {
+    flex: 1;
+    min-width: 200px;
+    height: 10px;
+    background: rgba(255,255,255,.15);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecca3, #00c9ff);
+    border-radius: 10px;
+    transition: width .5s ease;
+  }
+  .overall-pct {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #4ecca3;
+    min-width: 44px;
+    text-align: right;
+  }
+
+  /* ── Main layout ── */
+  .container { max-width: 1300px; margin: 0 auto; padding: 28px 24px; }
+
+  /* ── Step cards ── */
+  .step-card {
+    background: #fff;
+    border-radius: 14px;
+    margin-bottom: 22px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,.07);
+    transition: box-shadow .2s;
+  }
+  .step-card:hover { box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 22px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .step-badge {
+    font-size: .72rem;
+    font-weight: 700;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .step-title { font-size: .95rem; font-weight: 700; flex: 1; }
+  .step-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 180px;
+  }
+  .step-bar {
+    flex: 1;
+    height: 8px;
+    background: #e8edf5;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .step-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width .4s ease;
+  }
+  .step-pct { font-size: .8rem; font-weight: 700; min-width: 36px; text-align: right; }
+
+  .toggle-btn {
+    width: 28px; height: 28px;
+    border: none; background: #f0f2f5;
+    border-radius: 50%; cursor: pointer;
+    font-size: .9rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .25s, background .2s;
+    flex-shrink: 0;
+  }
+  .toggle-btn.open { transform: rotate(180deg); }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+  }
+  thead th {
+    background: #f7f9fc;
+    padding: 10px 14px;
+    text-align: left;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #6b7a99;
+    border-bottom: 2px solid #e3e8f0;
+    white-space: nowrap;
+  }
+  tbody tr { border-bottom: 1px solid #f0f3f8; transition: background .15s; }
+  tbody tr:hover { background: #fafbfd; }
+  tbody td { padding: 11px 14px; vertical-align: middle; }
+
+  /* col widths */
+  .col-no   { width: 44px; text-align: center; color: #8a93a8; font-size: .78rem; }
+  .col-item { min-width: 160px; font-weight: 600; color: #1a1a2e; }
+  .col-desc { min-width: 280px; color: #4a5568; line-height: 1.55; }
+  .col-date { width: 100px; white-space: nowrap; }
+  .col-owner{ width: 100px; }
+  .col-done { width: 90px; text-align: center; }
+  .col-note { min-width: 180px; }
+
+  /* date input */
+  .date-input {
+    border: 1px solid #d8dfe8;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: .8rem;
+    width: 120px;
+    font-family: inherit;
+    transition: border-color .2s;
+  }
+  .date-input:focus { outline: none; border-color: #4ecca3; }
+
+  /* owner select */
+  .owner-select {
+    border: 1px solid #d8dfe8;
+    border-radius: 6px;
+    padding: 5px 8px;
+    font-size: .8rem;
+    width: 110px;
+    font-family: inherit;
+    background: #fff;
+    transition: border-color .2s;
+    cursor: pointer;
+  }
+  .owner-select:focus { outline: none; border-color: #4ecca3; }
+
+  /* note textarea */
+  .note-input {
+    border: 1px solid #d8dfe8;
+    border-radius: 6px;
+    padding: 6px 9px;
+    font-size: .8rem;
+    width: 100%;
+    min-width: 160px;
+    resize: vertical;
+    font-family: inherit;
+    line-height: 1.4;
+    transition: border-color .2s;
+    min-height: 36px;
+  }
+  .note-input:focus { outline: none; border-color: #4ecca3; }
+
+  /* done toggle */
+  .done-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .done-toggle input[type=checkbox] { display: none; }
+  .done-icon {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2px solid #d0d7e5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    transition: all .2s;
+    background: #fff;
+  }
+  .done-toggle input:checked ~ .done-icon {
+    background: #4ecca3;
+    border-color: #4ecca3;
+    color: #fff;
+  }
+  .done-toggle input:checked ~ .done-icon::after { content: '✓'; }
+  .done-toggle input:not(:checked) ~ .done-icon::after { content: ''; }
+
+  /* row done state */
+  tr.row-done { background: #f5fdf9 !important; }
+  tr.row-done td { opacity: .72; }
+  tr.row-done .col-item { text-decoration: line-through; color: #7a9a8a; }
+
+  /* step color themes */
+  .step-0 .step-badge { background: #7c3aed; }
+  .step-0 .step-bar-fill { background: linear-gradient(90deg,#9b59b6,#7c3aed); }
+  .step-0 .step-pct { color: #7c3aed; }
+
+  .step-1 .step-badge { background: #dc2626; }
+  .step-1 .step-bar-fill { background: linear-gradient(90deg,#f87171,#dc2626); }
+  .step-1 .step-pct { color: #dc2626; }
+
+  .step-2 .step-badge { background: #f59e0b; }
+  .step-2 .step-bar-fill { background: linear-gradient(90deg,#fcd34d,#f59e0b); }
+  .step-2 .step-pct { color: #d97706; }
+
+  .step-3 .step-badge { background: #2563eb; }
+  .step-3 .step-bar-fill { background: linear-gradient(90deg,#60a5fa,#2563eb); }
+  .step-3 .step-pct { color: #2563eb; }
+
+  .step-4 .step-badge { background: #059669; }
+  .step-4 .step-bar-fill { background: linear-gradient(90deg,#34d399,#059669); }
+  .step-4 .step-pct { color: #059669; }
+
+  /* ── Action bar ── */
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn {
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: .84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg,#4ecca3,#00c9ff);
+    color: #1a1a2e;
+  }
+  .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+  .btn-outline {
+    background: #fff;
+    border: 1.5px solid #d0d7e5;
+    color: #4a5568;
+  }
+  .btn-outline:hover { border-color: #4ecca3; color: #059669; }
+  .btn-danger {
+    background: #fff;
+    border: 1.5px solid #fca5a5;
+    color: #dc2626;
+  }
+  .btn-danger:hover { background: #fef2f2; }
+
+  .spacer { flex: 1; }
+  .last-saved { font-size: .78rem; color: #8a93a8; }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-label { font-size: .75rem; color: #8a93a8; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; }
+  .stat-value { font-size: 1.7rem; font-weight: 800; color: #1a1a2e; }
+  .stat-sub { font-size: .75rem; color: #a0aab8; }
+
+  /* ── Notifications ── */
+  .toast {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    background: #1a1a2e;
+    color: #4ecca3;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: .85rem;
+    font-weight: 600;
+    box-shadow: 0 6px 24px rgba(0,0,0,.3);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all .3s;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* collapsed table body */
+  .table-body-wrap { overflow: hidden; }
+
+  @media (max-width: 700px) {
+    .header { padding: 18px 16px; }
+    .container { padding: 16px 10px; }
+    .step-progress-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>AIDD 프로젝트 시범적용 준비사항 점검표</h1>
+  <div class="sub">편집 후 저장 버튼을 눌러 변경사항을 보관하세요</div>
+  <div class="overall">
+    <span class="overall-label">전체 완료율</span>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="overallFill" style="width:0%"></div>
+    </div>
+    <span class="overall-pct" id="overallPct">0%</span>
+    <span class="overall-label" id="overallCount" style="margin-left:4px"></span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-label">전체 항목</div>
+      <div class="stat-value" id="statTotal">—</div>
+      <div class="stat-sub">준비 체크리스트</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">완료</div>
+      <div class="stat-value" id="statDone" style="color:#059669">—</div>
+      <div class="stat-sub">완료된 항목</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">진행 중</div>
+      <div class="stat-value" id="statPending" style="color:#f59e0b">—</div>
+      <div class="stat-sub">미완료 항목</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">D-Day</div>
+      <div class="stat-value" id="statDday" style="color:#2563eb">—</div>
+      <div class="stat-sub">최근 목표일까지</div>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="saveData()">💾 저장</button>
+    <button class="btn btn-outline" onclick="expandAll()">전체 펼치기</button>
+    <button class="btn btn-outline" onclick="collapseAll()">전체 접기</button>
+    <button class="btn btn-outline" onclick="filterPending()">미완료만 보기</button>
+    <button class="btn btn-outline" onclick="clearFilter()">전체 보기</button>
+    <div class="spacer"></div>
+    <span class="last-saved" id="lastSaved"></span>
+    <button class="btn btn-danger" onclick="resetAll()">초기화</button>
+  </div>
+
+  <!-- Step 0 -->
+  <div class="step-card step-0" id="card-0">
+    <div class="step-header" onclick="toggleStep(0)">
+      <span class="step-badge">STEP 0</span>
+      <span class="step-title">시범적용 목표/범위 정리</span>
+      <div class="step-progress-wrap">
+        <div class="step-bar"><div class="step-bar-fill" id="bar-0"></div></div>
+        <span class="step-pct" id="pct-0">0%</span>
+      </div>
+      <button class="toggle-btn open" id="btn-0">▾</button>
+    </div>
+    <div class="table-body-wrap" id="body-0">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-item">준비 항목</th>
+              <th class="col-desc">세부 내용</th>
+              <th class="col-date">완료목표</th>
+              <th class="col-owner">담당</th>
+              <th class="col-done">완료여부</th>
+              <th class="col-note">비고</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-0"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step-card step-1" id="card-1">
+    <div class="step-header" onclick="toggleStep(1)">
+      <span class="step-badge">STEP 1</span>
+      <span class="step-title">경영층 의지 표명 — 착수 선결 조건</span>
+      <div class="step-progress-wrap">
+        <div class="step-bar"><div class="step-bar-fill" id="bar-1"></div></div>
+        <span class="step-pct" id="pct-1">0%</span>
+      </div>
+      <button class="toggle-btn open" id="btn-1">▾</button>
+    </div>
+    <div class="table-body-wrap" id="body-1">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-item">준비 항목</th>
+              <th class="col-desc">세부 내용</th>
+              <th class="col-date">완료목표</th>
+              <th class="col-owner">담당</th>
+              <th class="col-done">완료여부</th>
+              <th class="col-note">비고</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-1"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step-card step-2" id="card-2">
+    <div class="step-header" onclick="toggleStep(2)">
+      <span class="step-badge">STEP 2</span>
+      <span class="step-title">프로젝트팀과 실무 협의, 목표 확정</span>
+      <div class="step-progress-wrap">
+        <div class="step-bar"><div class="step-bar-fill" id="bar-2"></div></div>
+        <span class="step-pct" id="pct-2">0%</span>
+      </div>
+      <button class="toggle-btn open" id="btn-2">▾</button>
+    </div>
+    <div class="table-body-wrap" id="body-2">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-item">준비 항목</th>
+              <th class="col-desc">세부 내용</th>
+              <th class="col-date">완료목표</th>
+              <th class="col-owner">담당</th>
+              <th class="col-done">완료여부</th>
+              <th class="col-note">비고</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-2"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step-card step-3" id="card-3">
+    <div class="step-header" onclick="toggleStep(3)">
+      <span class="step-badge">STEP 3</span>
+      <span class="step-title">작업환경 구성 (프로젝트팀 주관)</span>
+      <div class="step-progress-wrap">
+        <div class="step-bar"><div class="step-bar-fill" id="bar-3"></div></div>
+        <span class="step-pct" id="pct-3">0%</span>
+      </div>
+      <button class="toggle-btn open" id="btn-3">▾</button>
+    </div>
+    <div class="table-body-wrap" id="body-3">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-item">준비 항목</th>
+              <th class="col-desc">세부 내용</th>
+              <th class="col-date">완료목표</th>
+              <th class="col-owner">담당</th>
+              <th class="col-done">완료여부</th>
+              <th class="col-note">비고</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-3"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="step-card step-4" id="card-4">
+    <div class="step-header" onclick="toggleStep(4)">
+      <span class="step-badge">STEP 4</span>
+      <span class="step-title">지원팀 내부 준비</span>
+      <div class="step-progress-wrap">
+        <div class="step-bar"><div class="step-bar-fill" id="bar-4"></div></div>
+        <span class="step-pct" id="pct-4">0%</span>
+      </div>
+      <button class="toggle-btn open" id="btn-4">▾</button>
+    </div>
+    <div class="table-body-wrap" id="body-4">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="col-no">No</th>
+              <th class="col-item">준비 항목</th>
+              <th class="col-desc">세부 내용</th>
+              <th class="col-date">완료목표</th>
+              <th class="col-owner">담당</th>
+              <th class="col-done">완료여부</th>
+              <th class="col-note">비고</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-4"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────
+const STEPS = [
+  {
+    id: 0,
+    rows: [
+      { no:1, item:'시범적용 목적·범위 정의',        desc:'프로젝트 시범적용 대상 업무, AI활용 대상 작업/산출물 식별 등을 진행하고 시범적용의 궁극적인 목표를 수립', date:'2026-06-30', owner:'지원팀', done:false, note:'' },
+      { no:2, item:'적용 범위 후보 도출 (반복개발단계 중심)', desc:'설계 완료 상태를 반영, 적용 가능한 후보 모듈/활동/산출물을 우리 시각에서 선별(적정 범위 案)', date:'2026-06-30', owner:'지원팀', done:false, note:'7월 중도 투입 특성 반영' },
+      { no:3, item:'기존 설계산출물 활용방안 점검',   desc:'이미 완료된 설계 산출물을 Skill/컨텍스트로 재활용 가능한지 검토 → 범위 판단 입력', date:'2026-06-30', owner:'지원팀', done:false, note:'범위 결정 근거' },
+      { no:4, item:'기대효과·리스크·소요자원 정리',   desc:'투입 공수, 일정 영향, 리스크, 필요 자원(PC·계정·환경)을 경영층 보고·협의 논거로 정리', date:'2026-06-30', owner:'지원팀', done:false, note:'' },
+      { no:5, item:'추진 계획서 수립',               desc:'위 내용을 경영층 보고 및 프로젝트팀 협의용 초안으로 정리', date:'2026-06-30', owner:'지원팀', done:false, note:'' },
+    ]
+  },
+  {
+    id: 1,
+    rows: [
+      { no:1, item:'시범적용 공식 지시 (프로젝트 PM 포함)', desc:'경영층이 본 프로젝트를 AIDD 시범 대상으로 공식 지정하고, 착수 전제(미적용) 변경을 승인. PM·수행본부에 Top-down 메시지 전달', date:'2026-06-30', owner:'경영층', done:false, note:'' },
+      { no:2, item:'추진 권한·자원 보장',             desc:'필요 인력 공수, 일정, 비용 사용을 공식 승인', date:'2026-06-30', owner:'경영층', done:false, note:'범위, 목표에 따른 인력 구성' },
+    ]
+  },
+  {
+    id: 2,
+    rows: [
+      { no:1, item:'Kick-off 협의 및 목표/적용범위 합의', desc:'우리 안(목표·범위) 공유, 현재 진척(설계 완료/개발 착수)·제약 상호 확인, 협의 채널 확정', date:'2026-07-02', owner:'공동', done:false, note:'BP 및 Agent확보, 방법론 적용 결과(테일러링된 계획단계, 반복개발단계 작업/산출물)' },
+      { no:2, item:'역할 및 책임, 프로젝트 참여수준 등 정의', desc:'PM·PL·개발자·착수지원팀 간 R&R, 프로젝트의 참여/지원 수준, 이슈 보고 체계 정의', date:'2026-07-02', owner:'공동', done:false, note:'주단위 현황 보고(목, 오전)' },
+      { no:3, item:'일정 및 마일스톤 합의',           desc:'투입일 확정, 교육 및 AI적용 마일스톤을 프로젝트 일정에 반영', date:'2026-07-02', owner:'공동', done:false, note:'시범적용 일정표 별도 관리?' },
+      { no:4, item:'AIDD 적용 협조요청사항 협의',     desc:'착수지원팀 인원에 맞춰 현장의 작업공간, PC환경(인텔리센코드 사용) 확보, 작업을 위한 산출물 자료 공유 요청, 프로젝트 의사소통 채널 및 수준 협의 등', date:'', owner:'공동', done:false, note:'' },
+    ]
+  },
+  {
+    id: 3,
+    rows: [
+      { no:1, item:'프로젝트룸에 개인별 작업 공간 및 회의실 확보', desc:'시범 적용 팀 좌석·공간 및 회의실 사용 여부 확인, 출입 조건 확인', date:'2026-07-02', owner:'프로젝트팀', done:false, note:'투입인력 만큼의 PC 및 좌석 확보 필요 (불가시 본사준비 → 현장 적용 형태로 작업 협의)' },
+      { no:2, item:'인텔리센코드 사용 가능 PC 환경 확보', desc:'인텔리센코드 구동 PC 확보, 네트워크 환경 확인', date:'2026-07-02', owner:'프로젝트팀', done:false, note:'' },
+    ]
+  },
+  {
+    id: 4,
+    rows: [
+      { no:1, item:'AI 적용계획 수립',     desc:'상세 적용계획(대상 활동·산출물·방식) 작성', date:'2026-07-06', owner:'지원팀', done:false, note:'추진계획서 기반으로 작성' },
+      { no:2, item:'Skill 개발',           desc:'적용 범위에 해당하는 Skill(절차·규칙·표준) 및 CEN.md 초안 개발', date:'2026-07-10', owner:'지원팀', done:false, note:'' },
+      { no:3, item:'표준 템플릿 Skill 개발', desc:'표준 템플릿 개발 + Skill 연계', date:'2026-07-10', owner:'지원팀', done:false, note:'' },
+      { no:4, item:'교육자료 준비',         desc:'AIDD 개발방법론 소개자료 및 Skill 사용 가이드 작성', date:'2026-07-10', owner:'지원팀', done:false, note:'' },
+      { no:5, item:'AIDD 교육 실시',       desc:'방법론·도구 교육 진행', date:'2026-07-13', owner:'지원팀', done:false, note:'' },
+      { no:6, item:'프로젝트 내 AI 담당자 지정', desc:'인텔리센코드 및 AIDD 담당자(Skill별 Owner) 지정', date:'2026-07-13', owner:'지원팀', done:false, note:'' },
+      { no:7, item:'고객 교육·변화관리',   desc:'AI 적용 장단점 교육 및 변화관리 (STEP3 연계 실행)', date:'투입 후 계속', owner:'지원팀', done:false, note:'' },
+      { no:8, item:'AIDD 적용·개선',       desc:'Skill 적용 및 개선', date:'투입 후 계속', owner:'지원팀', done:false, note:'적용 방식 구체화 필요' },
+      { no:9, item:'측정 메트릭 정의',     desc:'AIDD 효과 측정을 위한 메트릭 정의', date:'시점 협의', owner:'지원팀', done:false, note:'필요 시' },
+    ]
+  }
+];
+
+const OWNERS = ['지원팀','경영층','공동','프로젝트팀','PM','기타'];
+const STORAGE_KEY = 'aidd_dashboard_v1';
+
+// ── State ─────────────────────────────────────────────────────────
+let state; // loaded from storage or default
+
+function loadState() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge saved state into default (in case new rows were added)
+      STEPS.forEach(step => {
+        const savedStep = parsed.find(s => s.id === step.id);
+        if (savedStep) {
+          step.rows.forEach((row, ri) => {
+            const savedRow = savedStep.rows[ri];
+            if (savedRow) {
+              row.done  = savedRow.done  ?? row.done;
+              row.note  = savedRow.note  ?? row.note;
+              row.date  = savedRow.date  ?? row.date;
+              row.owner = savedRow.owner ?? row.owner;
+            }
+          });
+        }
+      });
+    }
+  } catch(e) { console.warn('State load failed', e); }
+  state = STEPS;
+}
+
+// ── Render ────────────────────────────────────────────────────────
+function renderAll() {
+  STEPS.forEach(step => renderStep(step));
+  updateStats();
+}
+
+function renderStep(step) {
+  const tbody = document.getElementById(`tbody-${step.id}`);
+  tbody.innerHTML = '';
+  step.rows.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    tr.id = `row-${step.id}-${ri}`;
+    if (row.done) tr.classList.add('row-done');
+
+    // Date field: use text input for non-date strings
+    const isRealDate = /^\d{4}-\d{2}-\d{2}$/.test(row.date);
+    const dateField = isRealDate
+      ? `<input type="date" class="date-input" value="${row.date}" onchange="updateField(${step.id},${ri},'date',this.value)">`
+      : `<input type="text" class="date-input" style="width:110px" value="${row.date}" onchange="updateField(${step.id},${ri},'date',this.value)" placeholder="날짜">`;
+
+    const ownerOpts = OWNERS.map(o =>
+      `<option value="${o}" ${row.owner===o?'selected':''}>${o}</option>`
+    ).join('');
+
+    tr.innerHTML = `
+      <td class="col-no">${row.no}</td>
+      <td class="col-item">${row.item}</td>
+      <td class="col-desc">${row.desc}</td>
+      <td class="col-date">${dateField}</td>
+      <td class="col-owner">
+        <select class="owner-select" onchange="updateField(${step.id},${ri},'owner',this.value)">
+          ${ownerOpts}
+        </select>
+      </td>
+      <td class="col-done">
+        <label class="done-toggle">
+          <input type="checkbox" ${row.done?'checked':''} onchange="toggleDone(${step.id},${ri},this.checked)">
+          <span class="done-icon"></span>
+        </label>
+      </td>
+      <td class="col-note">
+        <textarea class="note-input" rows="1" onchange="updateField(${step.id},${ri},'note',this.value)">${row.note}</textarea>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  updateStepProgress(step);
+}
+
+function updateField(stepId, rowIdx, field, value) {
+  STEPS[stepId].rows[rowIdx][field] = value;
+  updateStepProgress(STEPS[stepId]);
+  updateStats();
+}
+
+function toggleDone(stepId, rowIdx, checked) {
+  STEPS[stepId].rows[rowIdx].done = checked;
+  const tr = document.getElementById(`row-${stepId}-${rowIdx}`);
+  tr.classList.toggle('row-done', checked);
+  updateStepProgress(STEPS[stepId]);
+  updateStats();
+}
+
+function updateStepProgress(step) {
+  const total = step.rows.length;
+  const done  = step.rows.filter(r => r.done).length;
+  const pct   = total ? Math.round(done/total*100) : 0;
+  document.getElementById(`bar-${step.id}`).style.width = pct + '%';
+  document.getElementById(`pct-${step.id}`).textContent  = pct + '%';
+}
+
+function updateStats() {
+  const allRows  = STEPS.flatMap(s => s.rows);
+  const total    = allRows.length;
+  const done     = allRows.filter(r => r.done).length;
+  const pending  = total - done;
+  const pct      = total ? Math.round(done/total*100) : 0;
+
+  document.getElementById('overallFill').style.width  = pct + '%';
+  document.getElementById('overallPct').textContent   = pct + '%';
+  document.getElementById('overallCount').textContent = `(${done}/${total})`;
+  document.getElementById('statTotal').textContent    = total;
+  document.getElementById('statDone').textContent     = done;
+  document.getElementById('statPending').textContent  = pending;
+
+  // nearest upcoming date
+  const today = new Date();
+  const upcoming = allRows
+    .filter(r => !r.done && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
+    .map(r => new Date(r.date))
+    .filter(d => d >= today)
+    .sort((a,b) => a-b);
+
+  if (upcoming.length) {
+    const diff = Math.ceil((upcoming[0]-today)/(1000*60*60*24));
+    document.getElementById('statDday').textContent = `D-${diff}`;
+  } else {
+    document.getElementById('statDday').textContent = '—';
+  }
+}
+
+// ── Toggle collapse ───────────────────────────────────────────────
+function toggleStep(id) {
+  const body = document.getElementById(`body-${id}`);
+  const btn  = document.getElementById(`btn-${id}`);
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : '';
+  btn.classList.toggle('open', !open);
+}
+function expandAll()   { STEPS.forEach(s => { document.getElementById(`body-${s.id}`).style.display=''; document.getElementById(`btn-${s.id}`).classList.add('open'); }); }
+function collapseAll() { STEPS.forEach(s => { document.getElementById(`body-${s.id}`).style.display='none'; document.getElementById(`btn-${s.id}`).classList.remove('open'); }); }
+
+// ── Filter ────────────────────────────────────────────────────────
+let filterActive = false;
+function filterPending() {
+  filterActive = true;
+  STEPS.forEach(step => {
+    const tbody = document.getElementById(`tbody-${step.id}`);
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr, ri) => {
+      tr.style.display = step.rows[ri].done ? 'none' : '';
+    });
+  });
+}
+function clearFilter() {
+  filterActive = false;
+  STEPS.forEach(step => {
+    const tbody = document.getElementById(`tbody-${step.id}`);
+    Array.from(tbody.querySelectorAll('tr')).forEach(tr => tr.style.display = '');
+  });
+}
+
+// ── Save / Reset ──────────────────────────────────────────────────
+function saveData() {
+  const snapshot = STEPS.map(step => ({
+    id: step.id,
+    rows: step.rows.map(r => ({ done: r.done, note: r.note, date: r.date, owner: r.owner }))
+  }));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+  const now = new Date().toLocaleString('ko-KR');
+  document.getElementById('lastSaved').textContent = `마지막 저장: ${now}`;
+  showToast('저장되었습니다 ✓');
+}
+
+function resetAll() {
+  if (!confirm('모든 변경사항(완료여부, 비고 등)을 초기화하시겠습니까?')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Auto-save hint ────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); saveData(); }
+});
+
+// ── Init ──────────────────────────────────────────────────────────
+loadState();
+renderAll();
+
+// show last saved time if exists
+const saved = localStorage.getItem(STORAGE_KEY);
+if (saved) {
+  const meta = localStorage.getItem(STORAGE_KEY + '_ts');
+  // we store ts separately for display
+}
+</script>
+</body>
+</html>
